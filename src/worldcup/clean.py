@@ -17,7 +17,7 @@ import unicodedata
 
 import polars as pl
 
-from . import config, data
+from . import config, data, elo
 
 # Canonical national-team names follow the squad-list spelling; every other
 # source (martj42, Elo, fixtures) is mapped onto it.
@@ -83,8 +83,8 @@ def build_players() -> pl.DataFrame:
 
 
 def _latest_elo() -> pl.DataFrame:
-    """Latest Elo per team (+ world rank), canonicalized to squad spelling."""
-    return (data.latest_elo(exclude_dissolved=True)
+    """Latest self-computed Elo per team (+ world rank), canonical spelling."""
+    return (elo.latest_ratings()
             .with_columns(canon_team("team").alias("team"),
                           pl.col("rating").rank("dense", descending=True)
                           .cast(pl.Int32).alias("elo_rank"))
@@ -128,16 +128,26 @@ def build_teams(players: pl.DataFrame) -> pl.DataFrame:
             .sort("elo_rating", descending=True, nulls_last=True))
 
 
+def build_matches_rated() -> pl.DataFrame:
+    """One row per played match with pre/post self-computed Elo (walk-forward ready)."""
+    return elo.rate_matches().select(
+        "date", "home_team", "away_team", "home_score", "away_score", "tournament",
+        "neutral", "home_elo_pre", "away_elo_pre", "home_elo_post", "away_elo_post")
+
+
 def main() -> int:
     config.PROCESSED.mkdir(parents=True, exist_ok=True)
     players = build_players()
     teams = build_teams(players)
+    matches = build_matches_rated()
     players.write_parquet(config.PROCESSED / "players.parquet")
     teams.write_parquet(config.PROCESSED / "teams.parquet")
+    matches.write_parquet(config.PROCESSED / "matches_rated.parquet")
     matched = (players["goals_martj42"] > 0).sum()
-    print(f"players.parquet: {players.height} rows x {players.width} cols "
+    print(f"players.parquet:       {players.height} rows x {players.width} cols "
           f"({matched} matched to career goals)")
-    print(f"teams.parquet:   {teams.height} rows x {teams.width} cols")
+    print(f"teams.parquet:         {teams.height} rows x {teams.width} cols")
+    print(f"matches_rated.parquet: {matches.height} rows x {matches.width} cols")
     return 0
 
 

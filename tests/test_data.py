@@ -23,15 +23,6 @@ def test_former_names_dates_parsed():
     assert data.load_former_names().schema["start_date"] == pl.Date
 
 
-def test_elo_mixed_dates_all_parsed(elo):
-    assert elo["date"].null_count() == 0
-    assert elo["date"].max().year >= 2025
-
-
-def test_latest_elo_one_row_per_team(latest):
-    assert latest["team"].n_unique() == latest.height
-
-
 def test_team_match_log_doubles_rows(played):
     assert data.team_match_log(played).height == 2 * played.height
 

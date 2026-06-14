@@ -68,23 +68,15 @@ def rate_matches(played: pl.DataFrame | None = None) -> pl.DataFrame:
                            home_elo_post=pl.Series(h_post), away_elo_post=pl.Series(a_post))
 
 
+def rating_history(rated: pl.DataFrame | None = None) -> pl.DataFrame:
+    """Post-match rating per team over time (long): date, team, rating."""
+    rated = rated if rated is not None else rate_matches()
+    return pl.concat([
+        rated.select("date", team="home_team", rating="home_elo_post"),
+        rated.select("date", team="away_team", rating="away_elo_post")]).sort("date")
+
+
 def latest_ratings(rated: pl.DataFrame | None = None) -> pl.DataFrame:
     """Most recent computed rating per team (sorted strongest first)."""
-    rated = rated if rated is not None else rate_matches()
-    long = pl.concat([
-        rated.select("date", team="home_team", rating="home_elo_post"),
-        rated.select("date", team="away_team", rating="away_elo_post")])
-    return (long.sort("date").group_by("team", maintain_order=True).last()
+    return (rating_history(rated).group_by("team", maintain_order=True).last()
             .sort("rating", descending=True))
-
-
-def compare_to_external() -> pl.DataFrame:
-    """Latest self-computed vs eloratings.net rating per team (canonical names)."""
-    from .clean import canon_team  # local import avoids a module-level cycle
-    ours = latest_ratings().select(canon_team("team").alias("team"),
-                                   pl.col("rating").alias("elo_ours"))
-    ext = data.latest_elo(exclude_dissolved=True).select(
-        canon_team("team").alias("team"), pl.col("rating").alias("elo_orig"))
-    return (ours.join(ext, on="team")
-            .with_columns((pl.col("elo_ours") - pl.col("elo_orig")).alias("diff"))
-            .sort("elo_ours", descending=True))

@@ -24,11 +24,6 @@ def _iso_date(col: str = "date") -> pl.Expr:
     return pl.col(col).str.to_date("%Y-%m-%d", strict=False)
 
 
-def _mixed_date(col: str = "date") -> pl.Expr:
-    return pl.coalesce(pl.col(col).str.to_date("%Y-%m-%d", strict=False),
-                       pl.col(col).str.to_date("%m/%d/%Y", strict=False))
-
-
 def load_results(played_only: bool = False) -> pl.DataFrame:
     """International match results (martj42), 1872 → 2026."""
     df = _read_csv(config.RESULTS_CSV).with_columns(_iso_date().alias("date"))
@@ -54,27 +49,6 @@ def load_former_names() -> pl.DataFrame:
     return _read_csv(config.FORMER_NAMES_CSV).with_columns(
         _iso_date("start_date").alias("start_date"),
         _iso_date("end_date").alias("end_date"))
-
-
-def load_elo() -> pl.DataFrame:
-    """Historical Elo ratings (mixed date encoding fixed)."""
-    return (_read_csv(config.ELO_CSV)
-            .with_columns(_mixed_date().alias("date"))
-            .drop_nulls("date").sort("date"))
-
-
-def latest_elo(exclude_dissolved: bool = True) -> pl.DataFrame:
-    """Most recent Elo snapshot per team (sorted by rating).
-
-    ``exclude_dissolved`` drops teams whose last rating predates the latest
-    global snapshot by over a year (e.g. *West Germany*).
-    """
-    elo = load_elo()
-    last = elo.group_by("team", maintain_order=True).last()
-    if exclude_dissolved:
-        cutoff = last["date"].max().replace(year=last["date"].max().year - 1)
-        last = last.filter(pl.col("date") >= cutoff)
-    return last.sort("rating", descending=True)
 
 
 def team_match_log(results_played: pl.DataFrame) -> pl.DataFrame:

@@ -6,5 +6,4 @@ matplotlib>=3.7
 jupyter>=1.0
 nbformat>=5.9
 nbconvert>=7.0
-kaggle>=1.6        # raw-data updater: Elo dataset download
 pytest>=7.0        # test suite

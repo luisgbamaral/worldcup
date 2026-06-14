@@ -5,7 +5,7 @@ from worldcup import viz
 from worldcup.viz import plots
 
 
-def test_all_figures_build(played, goals, editions, elo, latest):
+def test_all_figures_build(played, goals, editions, elo_hist, latest):
     viz.set_style()
     figs = [
         plots.matches_per_year(played),
@@ -15,7 +15,7 @@ def test_all_figures_build(played, goals, editions, elo, latest):
         plots.goal_minute_distribution(goals),
         plots.worldcup_goals_per_match(editions),
         plots.top_elo(latest),
-        plots.elo_history(elo, ["Brazil", "Spain"]),
+        plots.elo_history(elo_hist, ["Brazil", "Spain"]),
     ]
     assert all(f is not None for f in figs)
 

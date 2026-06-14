@@ -4,7 +4,7 @@ import pytest
 
 matplotlib.use("Agg")  # headless backend for figure tests
 
-from worldcup import clean, data  # noqa: E402
+from worldcup import clean, data, elo as elo_mod  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -23,13 +23,18 @@ def goals():
 
 
 @pytest.fixture(scope="session")
-def elo():
-    return data.load_elo()
+def rated(played):
+    return elo_mod.rate_matches(played)
 
 
 @pytest.fixture(scope="session")
-def latest():
-    return data.latest_elo()
+def elo_hist(rated):
+    return elo_mod.rating_history(rated)
+
+
+@pytest.fixture(scope="session")
+def latest(rated):
+    return elo_mod.latest_ratings(rated)
 
 
 @pytest.fixture(scope="session")

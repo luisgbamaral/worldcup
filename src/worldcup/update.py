@@ -4,8 +4,8 @@ Run daily::
 
     python scripts/update_raw.py        # or: python -m worldcup.update
 
-The three GitHub sources download automatically; Elo is pulled via the Kaggle
-CLI when available (otherwise skipped with a note — see data/raw/README.md).
+All sources download from GitHub raw URLs / the GitHub API (no auth). Elo is
+not downloaded — it is computed from results in :mod:`worldcup.elo`.
 """
 from __future__ import annotations
 
@@ -59,30 +59,10 @@ def update_openfootball() -> int:
     return n
 
 
-def update_elo() -> int:
-    """eloratings — Kaggle dataset (manual upstream; needs ~/.kaggle/kaggle.json)."""
-    import contextlib
-    import io
-
-    try:  # importing kaggle authenticates and exits/raises if no token
-        with contextlib.redirect_stdout(io.StringIO()), \
-                contextlib.redirect_stderr(io.StringIO()):
-            from kaggle import api
-    except (Exception, SystemExit):  # noqa: BLE001 — missing package or token
-        print("  ! Elo skipped — no Kaggle token (~/.kaggle/kaggle.json). See data/raw/README.md")
-        return 0
-    dest = config.RAW / "eloratings"
-    dest.mkdir(parents=True, exist_ok=True)
-    api.dataset_download_files(
-        "saifalnimri/international-football-elo-ratings", path=str(dest), unzip=True)
-    return 1
-
-
 SOURCES = {
     "martj42": update_martj42,
     "statsbomb": update_statsbomb,
     "openfootball": update_openfootball,
-    "eloratings": update_elo,
 }
 
 
