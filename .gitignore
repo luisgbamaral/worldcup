@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+env/
+
+# Data: keep raw (sources) tracked, ignore generated layers
+data/interim/*
+data/processed/*
+!data/**/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
