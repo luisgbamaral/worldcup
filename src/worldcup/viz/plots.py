@@ -75,6 +75,20 @@ def top_elo(latest: pl.DataFrame, n: int = 12) -> plt.Figure:
     return fig
 
 
+def elo_vs_external(cmp: pl.DataFrame) -> plt.Figure:
+    """Scatter of self-computed vs eloratings.net ratings, with the y=x line."""
+    lo = min(cmp["elo_ours"].min(), cmp["elo_orig"].min())
+    hi = max(cmp["elo_ours"].max(), cmp["elo_orig"].max())
+    fig, ax = _fig(0.8)
+    ax.plot([lo, hi], [lo, hi], color="0.6", lw=0.8, ls="--", label="y = x")
+    ax.scatter(cmp["elo_orig"], cmp["elo_ours"], s=8,
+               color=style_for(0)["color"], alpha=0.7)
+    ax.set(title="Self-computed vs eloratings.net (latest per team)",
+           xlabel="eloratings.net rating", ylabel="self-computed rating")
+    ax.legend()
+    return fig
+
+
 def elo_history(elo: pl.DataFrame, teams: list[str]) -> plt.Figure:
     """Elo trajectory for selected teams (line style per team for B&W)."""
     fig, ax = _fig()
