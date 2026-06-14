@@ -63,15 +63,16 @@ def build_players() -> pl.DataFrame:
     partial, so ``goals`` remains authoritative.
     """
     goals = (data.load_goalscorers().filter(~pl.col("own_goal"))
-             .with_columns(_name_key("scorer").alias("name_key"))
-             .group_by("name_key").agg(goals_martj42=pl.len()))
+             .with_columns(canon_team("team").alias("team"),
+                           _name_key("scorer").alias("name_key"))
+             .group_by("team", "name_key").agg(goals_martj42=pl.len()))
     return (data.load_squad_players()
             .with_columns(
                 canon_team("team").alias("team"),
                 (pl.col("first_names").str.split(" ").list.first()
                  + " " + pl.col("last_names")).alias("_raw_key"))
             .with_columns(_name_key("_raw_key").alias("name_key"))
-            .join(goals, on="name_key", how="left")
+            .join(goals, on=["team", "name_key"], how="left")
             .with_columns(
                 pl.col("goals_martj42").fill_null(0),
                 (canon_team("club_country") != pl.col("team")).alias("plays_abroad"))
