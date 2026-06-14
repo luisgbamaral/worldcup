@@ -1,123 +1,104 @@
-"""Data loaders for the raw football datasets.
+"""Data loaders for the raw football datasets — Polars throughout.
 
-Each loader returns a tidy ``pandas.DataFrame`` and encapsulates the
-data-quality fixes discovered during EDA, so downstream code never has to
-re-handle them:
+Each loader returns a tidy ``polars.DataFrame`` and encapsulates the
+data-quality fixes found during EDA, so downstream code never re-handles them:
 
 * Elo CSV mixes two date formats (ISO ``1872-11-30`` and US ``12/13/2025``).
-* ``results`` contains future, not-yet-played fixtures (NaN scores).
-* Boolean-ish columns are stored as the strings ``"TRUE"``/``"FALSE"``.
+* ``results`` contains future, not-yet-played fixtures (``NA`` scores).
 * Dissolved nations (e.g. *West Germany*) coexist with current ones.
 """
 from __future__ import annotations
 
-import glob
 import json
-from pathlib import Path
 
-import pandas as pd
+import polars as pl
 
 from . import config
 
 
-def _to_bool(s: pd.Series) -> pd.Series:
-    return s.astype(str).str.strip().str.upper().eq("TRUE")
+def _read_csv(path) -> pl.DataFrame:
+    return pl.read_csv(path, null_values=["NA", ""], infer_schema_length=5000)
 
 
-def load_results(played_only: bool = False) -> pd.DataFrame:
-    """International match results (martj42), 1872 → 2026.
+def _iso_date(col: str = "date") -> pl.Expr:
+    return pl.col(col).str.to_date("%Y-%m-%d", strict=False)
 
-    Parameters
-    ----------
-    played_only:
-        Drop future/unplayed fixtures and cast scores to ``int``.
-    """
-    df = pd.read_csv(config.RESULTS_CSV, parse_dates=["date"])
-    df["neutral"] = _to_bool(df["neutral"])
+
+def _mixed_date(col: str = "date") -> pl.Expr:
+    return pl.coalesce(pl.col(col).str.to_date("%Y-%m-%d", strict=False),
+                       pl.col(col).str.to_date("%m/%d/%Y", strict=False))
+
+
+def load_results(played_only: bool = False) -> pl.DataFrame:
+    """International match results (martj42), 1872 → 2026."""
+    df = _read_csv(config.RESULTS_CSV).with_columns(_iso_date().alias("date"))
     if played_only:
-        df = df.dropna(subset=["home_score", "away_score"]).copy()
-        df["home_score"] = df["home_score"].astype(int)
-        df["away_score"] = df["away_score"].astype(int)
-        df["total_goals"] = df["home_score"] + df["away_score"]
-        df["goal_diff"] = df["home_score"] - df["away_score"]
-        df["year"] = df["date"].dt.year
+        df = df.filter(pl.col("home_score").is_not_null()).with_columns(
+            (pl.col("home_score") + pl.col("away_score")).alias("total_goals"),
+            (pl.col("home_score") - pl.col("away_score")).alias("goal_diff"),
+            pl.col("date").dt.year().alias("year"))
     return df
 
 
-def load_goalscorers() -> pd.DataFrame:
+def load_goalscorers() -> pl.DataFrame:
     """Individual goals with scorer, minute, penalty and own-goal flags."""
-    df = pd.read_csv(config.GOALSCORERS_CSV, parse_dates=["date"])
-    df["own_goal"] = _to_bool(df["own_goal"])
-    df["penalty"] = _to_bool(df["penalty"])
-    df["minute"] = pd.to_numeric(df["minute"], errors="coerce")
-    return df
+    return _read_csv(config.GOALSCORERS_CSV).with_columns(_iso_date().alias("date"))
 
 
-def load_shootouts() -> pd.DataFrame:
-    return pd.read_csv(config.SHOOTOUTS_CSV, parse_dates=["date"])
+def load_shootouts() -> pl.DataFrame:
+    return _read_csv(config.SHOOTOUTS_CSV).with_columns(_iso_date().alias("date"))
 
 
-def load_former_names() -> pd.DataFrame:
+def load_former_names() -> pl.DataFrame:
     """Mapping of former → current national-team names, with valid window."""
-    return pd.read_csv(
-        config.FORMER_NAMES_CSV, parse_dates=["start_date", "end_date"]
-    )
+    return _read_csv(config.FORMER_NAMES_CSV).with_columns(
+        _iso_date("start_date").alias("start_date"),
+        _iso_date("end_date").alias("end_date"))
 
 
-def load_elo() -> pd.DataFrame:
-    """Historical Elo ratings.
-
-    Fixes the mixed date encoding (ISO vs. US) that silently nulls ~99% of
-    rows under a single-format parse.
-    """
-    df = pd.read_csv(config.ELO_CSV)
-    iso = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="coerce")
-    us = pd.to_datetime(df["date"], format="%m/%d/%Y", errors="coerce")
-    df["date"] = iso.fillna(us)
-    return df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
+def load_elo() -> pl.DataFrame:
+    """Historical Elo ratings (mixed date encoding fixed)."""
+    return (_read_csv(config.ELO_CSV)
+            .with_columns(_mixed_date().alias("date"))
+            .drop_nulls("date").sort("date"))
 
 
-def latest_elo(exclude_dissolved: bool = True) -> pd.DataFrame:
-    """Most recent Elo snapshot per team.
+def latest_elo(exclude_dissolved: bool = True) -> pl.DataFrame:
+    """Most recent Elo snapshot per team (sorted by rating).
 
     ``exclude_dissolved`` drops teams whose last rating predates the latest
-    global snapshot (e.g. *West Germany*, *Yugoslavia*), which otherwise
-    pollute "current strength" rankings.
+    global snapshot by over a year (e.g. *West Germany*).
     """
     elo = load_elo()
-    last = elo.groupby("team", as_index=False).tail(1)
+    last = elo.group_by("team", maintain_order=True).last()
     if exclude_dissolved:
-        cutoff = elo["date"].max() - pd.Timedelta(days=365)
-        last = last[last["date"] >= cutoff]
-    return last.sort_values("rating", ascending=False).reset_index(drop=True)
+        cutoff = last["date"].max().replace(year=last["date"].max().year - 1)
+        last = last.filter(pl.col("date") >= cutoff)
+    return last.sort("rating", descending=True)
 
 
-def team_match_log(results_played: pd.DataFrame) -> pd.DataFrame:
+def team_match_log(results_played: pl.DataFrame) -> pl.DataFrame:
     """Reshape match results to one row per (team, match): gf, ga, outcome."""
-    home = results_played.rename(
-        columns={"home_team": "team", "away_team": "opponent",
-                 "home_score": "gf", "away_score": "ga"}
-    )
-    away = results_played.rename(
-        columns={"away_team": "team", "home_team": "opponent",
-                 "away_score": "gf", "home_score": "ga"}
-    )
-    cols = ["date", "team", "opponent", "gf", "ga", "tournament", "neutral"]
-    log = pd.concat([home[cols], away[cols]], ignore_index=True)
-    log["win"] = log["gf"] > log["ga"]
-    log["draw"] = log["gf"] == log["ga"]
-    log["loss"] = log["gf"] < log["ga"]
-    return log
+    home = results_played.select(
+        "date", pl.col("home_team").alias("team"), pl.col("away_team").alias("opponent"),
+        pl.col("home_score").alias("gf"), pl.col("away_score").alias("ga"),
+        "tournament", "neutral")
+    away = results_played.select(
+        "date", pl.col("away_team").alias("team"), pl.col("home_team").alias("opponent"),
+        pl.col("away_score").alias("gf"), pl.col("home_score").alias("ga"),
+        "tournament", "neutral")
+    return pl.concat([home, away]).with_columns(
+        (pl.col("gf") > pl.col("ga")).alias("win"),
+        (pl.col("gf") == pl.col("ga")).alias("draw"),
+        (pl.col("gf") < pl.col("ga")).alias("loss"))
 
 
-def load_worldcup_editions() -> pd.DataFrame:
+def load_worldcup_editions() -> pl.DataFrame:
     """One row per World Cup edition: played matches, goals, goals/match."""
     rows = []
-    pattern = str(config.WORLDCUP_JSON_DIR / "*" / "worldcup.json")
-    for path in sorted(glob.glob(pattern)):
-        year = Path(path).parent.name
+    for path in sorted(config.WORLDCUP_JSON_DIR.glob("*/worldcup.json")):
         try:
-            doc = json.load(open(path, encoding="utf-8"))
+            doc = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
         played, goals = 0, 0
@@ -127,7 +108,6 @@ def load_worldcup_editions() -> pd.DataFrame:
                 played += 1
                 goals += ft[0] + ft[1]
         if played:
-            rows.append((int(year), played, goals, goals / played))
-    return pd.DataFrame(
-        rows, columns=["year", "matches", "goals", "goals_per_match"]
-    ).sort_values("year").reset_index(drop=True)
+            rows.append({"year": int(path.parent.name), "matches": played,
+                         "goals": goals, "goals_per_match": goals / played})
+    return pl.DataFrame(rows).sort("year")
