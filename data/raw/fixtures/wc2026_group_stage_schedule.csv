@@ -1,0 +1,73 @@
+match_date,group,home_team,away_team,home_score,away_score,venue,kickoff
+2026-06-11,A,Mexico,South Africa,2,0,Mexico City,
+2026-06-11,A,South Korea,Czechia,2,1,"Zapopan, Mexico",
+2026-06-12,B,Canada,Bosnia and Herzegovina,1,1,Toronto,
+2026-06-12,D,United States,Paraguay,4,1,"Inglewood, Calif.",
+2026-06-13,B,Qatar,Switzerland,1,1,"Santa Clara, Calif.",
+2026-06-13,C,Brazil,Morocco,1,1,"East Rutherford, New Jersey",
+2026-06-13,C,Haiti,Scotland,0,1,"Foxborough, Mass.",
+2026-06-13,D,Australia,Türkiye,2,0,"Vancouver, Canada",9 p.m. local / 12 a.m. ET (June 14)
+2026-06-14,E,Germany,Curaçao,,,Houston,noon local / 1 p.m. ET
+2026-06-14,F,Netherlands,Japan,,,"Arlington, Texas",3 p.m. local / 4 p.m. ET
+2026-06-14,E,Ivory Coast,Ecuador,,,Philadelphia,7 p.m. ET
+2026-06-14,F,Sweden,Tunisia,,,"Guadalupe, Mexico",8 p.m. local / 10 p.m. ET
+2026-06-15,H,Spain,Cape Verde,,,Atlanta,noon local / 1 p.m. ET
+2026-06-15,G,Belgium,Egypt,,,Seattle,3 p.m. local / 6 p.m. ET
+2026-06-15,H,Saudi Arabia,Uruguay,,,"Miami Gardens, Fla.",6 p.m. ET
+2026-06-15,G,Iran,New Zealand,,,"Inglewood, Calif.",9 p.m. local / 12 a.m. ET (June 16)
+2026-06-16,I,France,Senegal,,,"East Rutherford, N.J.",3 p.m. ET
+2026-06-16,I,Iraq,Norway,,,"Foxborough, Mass.",6 p.m. ET
+2026-06-16,J,Argentina,Algeria,,,"Kansas City, Mo.",8 p.m. local / 9 p.m. ET
+2026-06-16,J,Austria,Jordan,,,"Santa Clara, Calif.",9 p.m. local / 12 a.m. ET (June 17)
+2026-06-17,K,Portugal,DR Congo,,,Houston,noon local / 1 p.m. ET
+2026-06-17,L,England,Croatia,,,"Arlington, Texas",3 p.m. local / 4 p.m. ET
+2026-06-17,L,Ghana,Panama,,,Toronto,7 p.m. ET
+2026-06-17,K,Uzbekistan,Colombia,,,Mexico City,8 p.m. local / 10 p.m. ET
+2026-06-18,A,Czechia,South Africa,,,Atlanta,noon ET
+2026-06-18,B,Switzerland,Bosnia and Herzegovina,,,"Inglewood, Calif.",noon local / 3 p.m. ET
+2026-06-18,B,Canada,Qatar,,,"Vancouver, Canada",3 p.m. local / 6 p.m. ET
+2026-06-18,A,Mexico,South Korea,,,"Zapopan, Mexico",9 p.m. local / 11 p.m. ET
+2026-06-19,D,United States,Australia,,,Seattle,noon local / 3 p.m. ET
+2026-06-19,C,Scotland,Morocco,,,"Foxborough, Mass.",6 p.m. ET
+2026-06-19,C,Brazil,Haiti,,,Philadelphia,9 p.m. ET
+2026-06-19,D,Türkiye,Paraguay,,,"Santa Clara, Calif.",9 p.m. local / 12 a.m. ET (June 20)
+2026-06-20,F,Netherlands,Sweden,,,Houston,noon local / 1 p.m. ET
+2026-06-20,E,Germany,Ivory Coast,,,Toronto,4 p.m. ET
+2026-06-20,E,Ecuador,Curaçao,,,"Kansas City, Mo.",7 p.m. local / 8 p.m. ET
+2026-06-20,F,Tunisia,Japan,,,"Guadalupe, Mexico",10 p.m. local / 12 a.m. ET (June 21)
+2026-06-21,H,Spain,Saudi Arabia,,,Atlanta,noon ET
+2026-06-21,G,Belgium,Iran,,,"Inglewood, Calif.",noon local / 3 p.m. ET
+2026-06-21,H,Uruguay,Cape Verde,,,"Miami Gardens, Fla.",6 p.m. ET
+2026-06-21,G,New Zealand,Egypt,,,Vancouver,6 p.m. local / 9 p.m. ET
+2026-06-22,J,Argentina,Austria,,,"Arlington, Texas",noon local / 1 p.m. ET
+2026-06-22,I,France,Iraq,,,Philadelphia,5 p.m. ET
+2026-06-22,I,Norway,Senegal,,,"East Rutherford, N.J.",8 p.m. ET
+2026-06-22,J,Jordan,Algeria,,,"Santa Clara, Calif.",8 p.m. local / 11 p.m. ET
+2026-06-23,K,Portugal,Uzbekistan,,,Houston,noon local / 1 p.m. ET
+2026-06-23,L,England,Ghana,,,"Foxborough, Mass.",4 p.m. ET
+2026-06-23,L,Panama,Croatia,,,Toronto,7 p.m. ET
+2026-06-23,K,Colombia,DR Congo,,,"Zapopan, Mexico",8 p.m. local / 10 p.m. ET
+2026-06-24,B,Switzerland,Canada,,,"Vancouver, Canada",noon local / 3 p.m. ET
+2026-06-24,B,Bosnia and Herzegovina,Qatar,,,Seattle,noon local / 3 p.m. ET
+2026-06-24,C,Scotland,Brazil,,,"Miami Gardens, Fla.",6 p.m. ET
+2026-06-24,C,Morocco,Haiti,,,Atlanta,6 p.m. ET
+2026-06-24,A,Czechia,Mexico,,,Mexico City,7 p.m. local / 9 p.m. ET
+2026-06-24,A,South Africa,South Korea,,,"Guadalupe, Mexico",7 p.m. local / 9 p.m. ET
+2026-06-25,E,Ecuador,Germany,,,"East Rutherford, N.J.",4 p.m. ET
+2026-06-25,E,Curaçao,Ivory Coast,,,Philadelphia,4 p.m. ET
+2026-06-25,F,Japan,Sweden,,,"Arlington, Texas",6 p.m. local / 7 p.m. ET
+2026-06-25,F,Tunisia,Netherlands,,,"Kansas City, Mo.",6 p.m. local / 7 p.m. ET
+2026-06-25,D,Türkiye,United States,,,"Inglewood, Calif.",7 p.m. local / 10 p.m. ET
+2026-06-25,D,Paraguay,Australia,,,"Santa Clara, Calif.",7 p.m. local / 10 p.m. ET
+2026-06-26,I,Norway,France,,,"Foxborough, Mass.",3 p.m. ET
+2026-06-26,I,Senegal,Iraq,,,Toronto,3 p.m. ET
+2026-06-26,H,Cape Verde,Saudi Arabia,,,Houston,7 p.m. local / 8 p.m. ET
+2026-06-26,H,Uruguay,Spain,,,"Zapopan, Mexico",6 p.m. local / 8 p.m. ET
+2026-06-26,G,Egypt,Iran,,,Seattle,8 p.m. local / 11 p.m. ET
+2026-06-26,G,New Zealand,Belgium,,,"Vancouver, Canada",8 p.m. local / 11 p.m. ET
+2026-06-27,L,Panama,England,,,"East Rutherford, N.J.",5 p.m. ET
+2026-06-27,L,Croatia,Ghana,,,Philadelphia,5 p.m. ET
+2026-06-27,K,Colombia,Portugal,,,"Miami Gardens, Fla.",7:30 p.m. ET
+2026-06-27,K,DR Congo,Uzbekistan,,,Atlanta Stadium,7:30 p.m. ET
+2026-06-27,J,Algeria,Austria,,,"Kansas City, Mo.",9 p.m. local / 10 p.m. ET
+2026-06-27,J,Jordan,Argentina,,,"Arlington, Texas",9 p.m. local / 10 p.m. ET

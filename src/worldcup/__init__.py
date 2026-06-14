@@ -3,7 +3,7 @@
 Reusable loaders, feature builders and visualizations for the
 exploratory analysis and the 2026 World Cup forecasting experiments.
 """
-from . import config, data, viz
+from . import clean, config, data, update, viz
 
-__all__ = ["config", "data", "viz"]
+__all__ = ["clean", "config", "data", "update", "viz"]
 __version__ = "0.1.0"
