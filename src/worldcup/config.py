@@ -4,6 +4,7 @@ No hard-coded absolute paths: the root is found by walking up from this
 file until the ``data/`` directory is located, so the package works from
 notebooks, scripts or an installed location alike.
 """
+import os
 from pathlib import Path
 
 
@@ -15,7 +16,20 @@ def _find_root(start: Path) -> Path:
     return start.parents[2]
 
 
+def _load_dotenv(path: Path) -> None:
+    """Minimal .env loader: populate os.environ without overriding real env vars."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+
+
 ROOT = _find_root(Path(__file__).resolve())
+_load_dotenv(ROOT / ".env")
 
 DATA = ROOT / "data"
 RAW = DATA / "raw"

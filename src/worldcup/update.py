@@ -10,8 +10,6 @@ CLI when available (otherwise skipped with a note — see data/raw/README.md).
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
 import urllib.request
 from pathlib import Path
 
@@ -62,16 +60,21 @@ def update_openfootball() -> int:
 
 
 def update_elo() -> int:
-    """eloratings — Kaggle dataset (manual upstream, requires the kaggle CLI)."""
-    if shutil.which("kaggle") is None:
-        print("  ! kaggle CLI not found — skipping Elo (see data/raw/README.md)")
+    """eloratings — Kaggle dataset (manual upstream; needs ~/.kaggle/kaggle.json)."""
+    import contextlib
+    import io
+
+    try:  # importing kaggle authenticates and exits/raises if no token
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            from kaggle import api
+    except (Exception, SystemExit):  # noqa: BLE001 — missing package or token
+        print("  ! Elo skipped — no Kaggle token (~/.kaggle/kaggle.json). See data/raw/README.md")
         return 0
     dest = config.RAW / "eloratings"
     dest.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["kaggle", "datasets", "download", "-d",
-         "saifalnimri/international-football-elo-ratings",
-         "-p", str(dest), "--unzip"], check=True)
+    api.dataset_download_files(
+        "saifalnimri/international-football-elo-ratings", path=str(dest), unzip=True)
     return 1
 
 
