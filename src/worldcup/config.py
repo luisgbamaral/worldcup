@@ -47,6 +47,9 @@ GOALSCORERS_CSV = RAW / "martj42" / "goalscorers.csv"
 SHOOTOUTS_CSV = RAW / "martj42" / "shootouts.csv"
 FORMER_NAMES_CSV = RAW / "martj42" / "former_names.csv"
 WORLDCUP_JSON_DIR = RAW / "worldcup.json-master" / "worldcup.json-master"
+FIXTURES_CSV = RAW / "fixtures" / "wc2026_group_stage_schedule.csv"
+SQUAD_PLAYERS_CSV = RAW / "squadlist" / "wc2026_squads_players.csv"
+SQUAD_COACHES_CSV = RAW / "squadlist" / "wc2026_squads_coaches.csv"
 
 for _d in (INTERIM, PROCESSED, FIGURES, TABLES):
     _d.mkdir(parents=True, exist_ok=True)

@@ -93,6 +93,23 @@ def team_match_log(results_played: pl.DataFrame) -> pl.DataFrame:
         (pl.col("gf") < pl.col("ga")).alias("loss"))
 
 
+def load_squad_players() -> pl.DataFrame:
+    """2026 World Cup squads — one row per player (dob parsed to Date)."""
+    return _read_csv(config.SQUAD_PLAYERS_CSV).with_columns(
+        pl.col("dob_iso").str.to_date(strict=False).alias("dob"))
+
+
+def load_squad_coaches() -> pl.DataFrame:
+    """2026 World Cup coaches — one row per team."""
+    return _read_csv(config.SQUAD_COACHES_CSV)
+
+
+def load_fixtures() -> pl.DataFrame:
+    """2026 World Cup group-stage schedule (match_date parsed to Date)."""
+    return _read_csv(config.FIXTURES_CSV).with_columns(
+        pl.col("match_date").str.to_date(strict=False).alias("match_date"))
+
+
 def load_worldcup_editions() -> pl.DataFrame:
     """One row per World Cup edition: played matches, goals, goals/match."""
     rows = []
