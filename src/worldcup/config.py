@@ -26,6 +26,11 @@ REPORTS = ROOT / "reports"
 FIGURES = REPORTS / "figures"
 TABLES = REPORTS / "tables"
 
+# processed feature bases
+MATCH_FEATURES = PROCESSED / "match_features.parquet"
+TEAM_MATCH_FEATURES = PROCESSED / "team_match_features.parquet"
+PLAYER_FEATURES = PROCESSED / "player_features.parquet"
+
 # source-specific raw paths
 RESULTS_CSV = RAW / "martj42" / "results.csv"
 GOALSCORERS_CSV = RAW / "martj42" / "goalscorers.csv"
