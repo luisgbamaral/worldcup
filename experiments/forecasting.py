@@ -167,11 +167,11 @@ def phase1(trials=0):
 
     tuned = {}
     if trials:
+        Xtr, ytr = M.to_numpy(data, M.feature_columns(data)), M.encode_result(data)
         for kind, n in models:
-            if kind == "A" and n in ("XGBoost", "CatBoost"):
-                Xtr = M.to_numpy(data, M.feature_columns(data))
-                tuned[n] = M.tune_classifier(n, Xtr, M.encode_result(data), dates,
-                                             n_trials=trials, n_folds=3)
+            if kind == "A":                      # tune every Arm A classifier with a search space
+                tuned[n] = M.tune_classifier(n, Xtr, ytr, dates, n_trials=trials, n_folds=3)
+                print(f"[tuned] {n}: {tuned[n]}")
 
     fold_rows, summary = [], []
     for kind, n in models:
