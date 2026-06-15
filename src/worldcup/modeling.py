@@ -14,6 +14,7 @@ import numpy as np
 import polars as pl
 from scipy.stats import poisson
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
+from sklearn.feature_selection import mutual_info_classif
 from sklearn.impute import SimpleImputer
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression, PoissonRegressor
@@ -47,6 +48,24 @@ try:  # cloud TabPFN (no GPU needed); token cached by tabpfn_client.set_access_t
     HAS_TABPFN = bool(_tc.get_access_token())
 except Exception:  # noqa: BLE001 — package missing or no token
     HAS_TABPFN = False
+
+try:  # TabICL — synthetic-prior tabular foundation model (Qu et al., ICML 2025)
+    from tabicl import TabICLClassifier
+    HAS_TABICL = True
+except Exception:  # noqa: BLE001
+    HAS_TABICL = False
+
+try:  # TabDPT — real-data-pretrained in-context tabular model (Layer6)
+    from tabdpt import TabDPTClassifier
+    HAS_TABDPT = True
+except Exception:  # noqa: BLE001
+    HAS_TABDPT = False
+
+try:
+    from skrebate import ReliefF
+    HAS_RELIEF = True
+except Exception:  # noqa: BLE001
+    HAS_RELIEF = False
 
 # columns that are never predictors
 DROP_COLS = {
@@ -86,6 +105,50 @@ def select_top_k(X: np.ndarray, y: np.ndarray, k: int) -> np.ndarray:
         return np.arange(X.shape[1])
     mi = mutual_info_classif(np.nan_to_num(X), y, random_state=SEED)
     return np.sort(np.argsort(mi)[::-1][:k])
+
+
+def _cfs(X: np.ndarray, y: np.ndarray, max_k: int = 25) -> list[int]:
+    """Correlation-based Feature Subset (Hall 1999): greedy merit maximization."""
+    Xz = np.nan_to_num(X)
+    rcf = mutual_info_classif(Xz, y, random_state=SEED)          # feature-target relevance
+    C = np.nan_to_num(np.abs(np.corrcoef(Xz, rowvar=False)))      # feature-feature redundancy
+    np.fill_diagonal(C, 1.0)
+
+    def merit(S):
+        k = len(S)
+        if k == 1:
+            return rcf[S[0]]
+        rff = (C[np.ix_(S, S)].sum() - k) / (k * (k - 1))
+        return k * rcf[S].mean() / np.sqrt(k + k * (k - 1) * rff)
+
+    selected = [int(np.argmax(rcf))]
+    improved = True
+    while improved and len(selected) < min(max_k, X.shape[1]):
+        improved, best, cand = False, merit(selected), None
+        for j in range(X.shape[1]):
+            if j not in selected and merit(selected + [j]) > best:
+                best, cand, improved = merit(selected + [j]), j, True
+        if cand is not None:
+            selected.append(cand)
+    return sorted(selected)
+
+
+def select_features_cfs(X: np.ndarray, y: np.ndarray, cols: list[str],
+                        n1: int = 40, n2: int = 30, use_relief: bool = True) -> list[str]:
+    """Multi-stage, redundancy-aware selection (fit on train only; Yeung et al. 2024):
+    MI filter (top n1) → ReliefF (top n2) → union → CFS final subset."""
+    Xz = np.nan_to_num(X)
+    mi = mutual_info_classif(Xz, y, random_state=SEED)
+    f1 = np.argsort(mi)[::-1][:min(n1, X.shape[1])]
+    if use_relief and HAS_RELIEF and len(f1) > 1:
+        rel = ReliefF(n_features_to_select=min(n2, len(f1)),
+                      n_neighbors=min(50, len(y) - 1)).fit(Xz[:, f1], y)
+        f2 = f1[np.argsort(rel.feature_importances_)[::-1][:min(n2, len(f1))]]
+    else:
+        f2 = f1[:min(n2, len(f1))]
+    cand = np.array(sorted(set(f1.tolist()) | set(f2.tolist())))
+    chosen = _cfs(Xz[:, cand], y)
+    return [cols[cand[i]] for i in chosen]
 
 
 # --------------------------------------------------------------------------- #
@@ -189,6 +252,10 @@ def build_classifier(name: str, params: dict | None = None, seed: int = SEED) ->
             learning_rate=p.get("learning_rate", 0.05), l2_leaf_reg=p.get("l2_leaf_reg", 3.0))))
     if name == "TabPFN" and HAS_TABPFN:
         return _impute(("m", TabPFNClassifier()))
+    if name == "TabICL" and HAS_TABICL:          # tune-free foundation model
+        return _impute(("m", TabICLClassifier()))
+    if name == "TabDPT" and HAS_TABDPT:          # tune-free foundation model
+        return _impute(("m", TabDPTClassifier()))
     raise ValueError(f"unknown/unavailable classifier: {name}")
 
 
@@ -200,7 +267,14 @@ def available_classifiers() -> list[str]:
         out.append("CatBoost")
     if HAS_TABPFN:
         out.append("TabPFN")
+    if HAS_TABICL:
+        out.append("TabICL")
+    if HAS_TABDPT:
+        out.append("TabDPT")
     return out
+
+
+FOUNDATION_MODELS = ["TabPFN", "TabICL", "TabDPT"]   # zero-shot / tune-free
 
 
 def build_poisson_regressor(name: str, params: dict | None = None, seed: int = SEED):
