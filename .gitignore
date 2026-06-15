@@ -1,6 +1,9 @@
 # Secrets — never commit real credentials
 .env
 
+# CatBoost training logs (written to CWD at fit time)
+catboost_info/
+
 # Python
 __pycache__/
 *.py[cod]

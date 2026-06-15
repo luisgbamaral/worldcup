@@ -1,0 +1,14 @@
+\begin{table}[t]
+  \centering
+  \caption{2026 World Cup played-game scorecard (out-of-sample, each game predicted as of its own date): winner accuracy (higher is better) and total-goals MAE.}
+  \label{tab:wc2026_scorecard}
+  \begin{tabular}{lrrr}
+  \toprule
+  model & games & winner\_acc & goals\_mae \\
+  \midrule
+  GrollRF & 8 & \textbf{0.500} & 1.120 \\
+  StructResid & 8 & \textbf{0.500} & 1.390 \\
+  CatBoost & 8 & 0.375 &  \\
+  \bottomrule
+  \end{tabular}
+\end{table}
