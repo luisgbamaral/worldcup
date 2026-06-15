@@ -11,4 +11,4 @@ scikit-learn>=1.3  # modeling: classifiers, calibration, Poisson GLM
 xgboost>=2.0       # modeling: boosting (1X2 + Poisson goals)
 catboost>=1.2      # modeling: boosting (1X2 + Poisson goals)
 optuna>=3.0        # modeling: temporal hyperparameter search
-# tabpfn>=2.0      # optional foundation model — needs TABPFN_TOKEN + GPU
+tabpfn-client>=0.1 # foundation model via free cloud API (needs TABPFN_TOKEN in .env)

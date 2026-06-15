@@ -197,11 +197,42 @@ def phase1(trials=0):
                         "Brier_test": mt["Brier"], "acc_test": mt["accuracy"],
                         "ECE_test": mt["ECE"]})
 
+    summary += _tabpfn_addendum(data, is_test, tuned)
+
     res = pl.DataFrame(summary).sort("RPS_test")
     pl.DataFrame(fold_rows).write_parquet(config.PROCESSED / "benchmark_results.parquet")
     res.write_parquet(config.PROCESSED / "benchmark_summary.parquet")
     _report_phase1(res)
     return res
+
+
+def _tabpfn_addendum(data, is_test, tuned=None, k_features=30):
+    """Held-out-test rows for TabPFN and the foundation+boosting hybrid.
+
+    TabPFN runs on the cloud (slow, rate-limited), so it is evaluated only on the
+    final held-out slice — not the 4-fold CV. Hybrid = mean of calibrated TabPFN
+    and CatBoost probabilities (parallel stacking). TabPFN uses the top-k features.
+    """
+    if not M.HAS_TABPFN:
+        print("[TabPFN] unavailable — skipping foundation hybrid")
+        return []
+    tr, te = data.filter(~pl.Series(is_test)), data.filter(pl.Series(is_test))
+    cols = M.feature_columns(tr)
+    Xtr, ytr = M.to_numpy(tr, cols), M.encode_result(tr)
+    Xte, yte = M.to_numpy(te, cols), M.encode_result(te)
+    idx = M.select_top_k(Xtr, ytr, k_features)
+    cb_params = (tuned or {}).get("CatBoost", {})
+    p_tab = M.proba_hda(M.build_classifier("TabPFN").fit(Xtr[:, idx], ytr), Xte[:, idx])
+    p_cb = M.proba_hda(M.build_classifier("CatBoost", cb_params).fit(Xtr, ytr), Xte)
+    p_hyb = (p_tab + p_cb) / 2
+    rows = []
+    for name, p in [("TabPFN", p_tab), ("Hybrid(TabPFN+CatBoost)", p_hyb)]:
+        rows.append({"model": name, "arm": "hybrid", "RPS_cv_mean": None, "RPS_cv_std": None,
+                     "RPS_test": M.rps(p, yte), "logloss_test": M.log_loss(p, yte),
+                     "Brier_test": M.brier(p, yte), "acc_test": M.accuracy(p, yte),
+                     "ECE_test": M.ece(p, yte)})
+        print(f"[TabPFN] {name}: RPS_test={M.rps(p, yte):.4f}")
+    return rows
 
 
 def _report_phase1(res):

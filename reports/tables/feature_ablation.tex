@@ -1,0 +1,28 @@
+\begin{table}[t]
+  \centering
+  \caption{Feature-count ablation (walk-forward RPS, lower is better): performance vs. the number of top-k mutual-information features. Trees are flat; selection helps the linear and foundation models.}
+  \label{tab:feature_ablation}
+  \begin{tabular}{lrrr}
+  \toprule
+  model & k & rps\_mean & rps\_std \\
+  \midrule
+  LogReg & 10 & 0.1717 & 0.0093 \\
+  LogReg & 20 & 0.1714 & 0.0092 \\
+  LogReg & 30 & 0.1717 & 0.0095 \\
+  LogReg & 40 & 0.1720 & 0.0096 \\
+  LogReg & 60 & 0.1726 & 0.0098 \\
+  LogReg & 90 & 0.1728 & 0.0101 \\
+  LogReg & 107 & 0.1732 & 0.0106 \\
+  CatBoost & 10 & 0.1728 & 0.0098 \\
+  CatBoost & 20 & 0.1730 & 0.0105 \\
+  CatBoost & 30 & 0.1728 & 0.0107 \\
+  CatBoost & 40 & 0.1725 & 0.0108 \\
+  CatBoost & 60 & 0.1728 & 0.0100 \\
+  CatBoost & 90 & 0.1728 & 0.0104 \\
+  CatBoost & 107 & 0.1727 & 0.0098 \\
+  TabPFN & 20 & 0.1599 & 0.0000 \\
+  TabPFN & 30 & 0.1599 & 0.0000 \\
+  TabPFN & 60 & \textbf{0.1596} & 0.0000 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

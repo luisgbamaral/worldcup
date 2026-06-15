@@ -36,11 +36,17 @@ try:
     HAS_CATBOOST = True
 except Exception:  # noqa: BLE001
     HAS_CATBOOST = False
-try:
-    import os
-    from tabpfn import TabPFNClassifier
-    HAS_TABPFN = bool(os.environ.get("TABPFN_TOKEN"))
-except Exception:  # noqa: BLE001
+import os
+
+HAS_TABPFN = False
+try:  # cloud TabPFN (no GPU needed); token cached by tabpfn_client.set_access_token
+    import tabpfn_client as _tc
+    _tok = os.environ.get("TABPFN_TOKEN") or os.environ.get("TABPFN_API_TOKEN")
+    if _tok:
+        _tc.set_access_token(_tok)
+    from tabpfn_client import TabPFNClassifier
+    HAS_TABPFN = bool(_tc.get_access_token())
+except Exception:  # noqa: BLE001 — package missing or no token
     HAS_TABPFN = False
 
 # columns that are never predictors
@@ -68,6 +74,19 @@ def to_numpy(df: pl.DataFrame, cols: list[str]) -> np.ndarray:
 
 def encode_result(df: pl.DataFrame) -> np.ndarray:
     return df["result"].replace_strict(_CLS_IDX, default=None).to_numpy()
+
+
+def select_top_k(X: np.ndarray, y: np.ndarray, k: int) -> np.ndarray:
+    """Indices of the top-k features by mutual information (fit on train only).
+
+    Useful for linear models and TabPFN (attention-based, feature-capped); trees
+    do implicit selection so it matters less for them.
+    """
+    from sklearn.feature_selection import mutual_info_classif
+    if X.shape[1] <= k:
+        return np.arange(X.shape[1])
+    mi = mutual_info_classif(np.nan_to_num(X), y, random_state=SEED)
+    return np.sort(np.argsort(mi)[::-1][:k])
 
 
 # --------------------------------------------------------------------------- #
