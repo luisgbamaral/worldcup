@@ -5,7 +5,8 @@
     python experiments/forecasting.py --phase 3
 
 Phase 1 — academic benchmark on pre-World-Cup data only (temporal CV + held-out
-test), every model vs. the Elo / Poisson-GLM / Groll baselines.
+test): direct 1X2 learners, goal (Poisson) models and the TabPFN foundation
+model. Elo is a covariate of the feature base, not a model here.
 Phase 2 — predict the 2026 games already played, as of each game's own date
 (out-of-sample), scorecard on winners and goals.
 Phase 3 — daily: retrain on everything known now (incl. played WC games) and
@@ -29,7 +30,6 @@ from worldcup import config, modeling as M, viz  # noqa: E402
 PRE_WC = dt.date(2026, 6, 10)
 ARM_A = ["LogReg", "RandomForest", "ExtraTrees", "XGBoost", "CatBoost"]
 ARM_B = ["PoissonGLM", "XGBoostPoisson", "CatBoostPoisson"]
-BENCH = ["Elo", "GrollRF"]            # trivial Elo + Groll SOTA (PoissonGLM already in ARM_B)
 SEED = M.SEED
 
 
@@ -63,16 +63,6 @@ def _predict_classifier(name, params, train_mf, pred_mf):
         p_home=p[:, 0], p_draw=p[:, 1], p_away=p[:, 2])
 
 
-def _elo(train_mf, pred_mf):
-    from sklearn.linear_model import LogisticRegression
-    Xtr = train_mf.select("elo_diff_eff").to_numpy()
-    clf = LogisticRegression(max_iter=1000).fit(Xtr, M.encode_result(train_mf))
-    p = clf.predict_proba(pred_mf.select("elo_diff_eff").to_numpy())
-    order = [list(clf.classes_).index(i) for i in range(3)]
-    p = p[:, order]
-    return pred_mf.select("match_id").with_columns(p_home=p[:, 0], p_draw=p[:, 1], p_away=p[:, 2])
-
-
 def _assemble(pred_tmf, lam):
     """Independent-Poisson scoreline per match from per-team λ."""
     lf = pred_tmf.select("match_id", "is_home").with_columns(lam=np.clip(lam, 0.05, None))
@@ -94,33 +84,9 @@ def _predict_goals(name, params, train_tmf, pred_tmf):
     return _assemble(pred_tmf, reg.predict(M.to_numpy(pred_tmf, cols)))
 
 
-def _struct_resid(train_tmf, pred_tmf):
-    """Pure Zhang residual hybrid: Poisson-GLM structural base as a log offset,
-    XGBoost(Poisson) learns the residual (native ``base_margin``)."""
-    import xgboost as xgb
-    cols = M.feature_columns(train_tmf)
-    Xtr, Xpr = M.to_numpy(train_tmf, cols), M.to_numpy(pred_tmf, cols)
-    med = np.nanmedian(Xtr, axis=0)
-    Xtr = np.where(np.isnan(Xtr), med, Xtr)
-    Xpr = np.where(np.isnan(Xpr), med, Xpr)
-    base_tr = M.build_poisson_regressor("PoissonGLM", {}, SEED).fit(
-        Xtr, train_tmf["gf"].to_numpy().astype(float))
-    btr = np.log(np.clip(base_tr.predict(Xtr), 0.05, None))
-    bpr = np.log(np.clip(base_tr.predict(Xpr), 0.05, None))
-    dtr = xgb.DMatrix(Xtr, label=train_tmf["gf"].to_numpy().astype(float), base_margin=btr)
-    dpr = xgb.DMatrix(Xpr, base_margin=bpr)
-    bst = xgb.train({"objective": "count:poisson", "max_depth": 4, "eta": 0.05, "seed": SEED},
-                    dtr, num_boost_round=400)
-    return _assemble(pred_tmf, bst.predict(dpr))
-
-
 def predict(kind, name, params, train_mf, train_tmf, pred_mf, pred_tmf):
     if kind == "A":
         return _predict_classifier(name, params, train_mf, pred_mf)
-    if name == "Elo":
-        return _elo(train_mf, pred_mf)
-    if name == "StructResid":
-        return _struct_resid(train_tmf, pred_tmf)
     return _predict_goals(name, params, train_tmf, pred_tmf)
 
 
@@ -136,21 +102,6 @@ def _metrics(pred, actual_mf):
     return out
 
 
-def _kind(name):
-    return "A" if name in ARM_A else "B"
-
-
-def _roster(arm_a, arm_b):
-    models = []
-    for n in ARM_A:
-        if arm_a and n in M.available_classifiers():
-            models.append(("A", n))
-    if arm_b:
-        for n in ARM_B + BENCH + ["StructResid"]:
-            models.append(("B", n))
-    return models
-
-
 # --------------------------------------------------------------------------- #
 # Phase 1 — benchmark
 # --------------------------------------------------------------------------- #
@@ -163,7 +114,7 @@ def phase1(trials=0):
     is_test = data["date"].to_numpy() > test_cut
 
     models = [("A", n) for n in ARM_A if n in M.available_classifiers()] \
-        + [("B", n) for n in ["Elo", "PoissonGLM", "GrollRF", "XGBoostPoisson", "CatBoostPoisson", "StructResid"]]
+        + [("B", n) for n in ARM_B]
 
     tuned = {}
     if trials:
@@ -207,32 +158,25 @@ def phase1(trials=0):
 
 
 def _tabpfn_addendum(data, is_test, tuned=None, k_features=30):
-    """Held-out-test rows for TabPFN and the foundation+boosting hybrid.
+    """Held-out-test row for the TabPFN foundation model (our main model).
 
     TabPFN runs on the cloud (slow, rate-limited), so it is evaluated only on the
-    final held-out slice — not the 4-fold CV. Hybrid = mean of calibrated TabPFN
-    and CatBoost probabilities (parallel stacking). TabPFN uses the top-k features.
+    final held-out slice — not the 4-fold CV — using the top-k features.
     """
     if not M.HAS_TABPFN:
-        print("[TabPFN] unavailable — skipping foundation hybrid")
+        print("[TabPFN] unavailable — skipping (set TABPFN_TOKEN in .env)")
         return []
     tr, te = data.filter(~pl.Series(is_test)), data.filter(pl.Series(is_test))
     cols = M.feature_columns(tr)
     Xtr, ytr = M.to_numpy(tr, cols), M.encode_result(tr)
     Xte, yte = M.to_numpy(te, cols), M.encode_result(te)
     idx = M.select_top_k(Xtr, ytr, k_features)
-    cb_params = (tuned or {}).get("CatBoost", {})
-    p_tab = M.proba_hda(M.build_classifier("TabPFN").fit(Xtr[:, idx], ytr), Xte[:, idx])
-    p_cb = M.proba_hda(M.build_classifier("CatBoost", cb_params).fit(Xtr, ytr), Xte)
-    p_hyb = (p_tab + p_cb) / 2
-    rows = []
-    for name, p in [("TabPFN", p_tab), ("Hybrid(TabPFN+CatBoost)", p_hyb)]:
-        rows.append({"model": name, "arm": "hybrid", "RPS_cv_mean": None, "RPS_cv_std": None,
-                     "RPS_test": M.rps(p, yte), "logloss_test": M.log_loss(p, yte),
-                     "Brier_test": M.brier(p, yte), "acc_test": M.accuracy(p, yte),
-                     "ECE_test": M.ece(p, yte)})
-        print(f"[TabPFN] {name}: RPS_test={M.rps(p, yte):.4f}")
-    return rows
+    p = M.proba_hda(M.build_classifier("TabPFN").fit(Xtr[:, idx], ytr), Xte[:, idx])
+    print(f"[TabPFN] RPS_test={M.rps(p, yte):.4f}")
+    return [{"model": "TabPFN", "arm": "foundation", "RPS_cv_mean": None, "RPS_cv_std": None,
+             "RPS_test": M.rps(p, yte), "logloss_test": M.log_loss(p, yte),
+             "Brier_test": M.brier(p, yte), "acc_test": M.accuracy(p, yte),
+             "ECE_test": M.ece(p, yte)}]
 
 
 def _report_phase1(res):
@@ -245,8 +189,8 @@ def _report_phase1(res):
         show, label="tab:benchmark", float_format="%.4f", bold_best="RPS_test",
         lower_is_better=True,
         caption=("Pre-World-Cup benchmark (1X2): walk-forward RPS (mean ± std) and held-out "
-                 "test metrics. RPS / log-loss: lower is better. The headline question is "
-                 "whether the boosting/hybrid models beat the Elo and Groll baselines."))
+                 "test metrics. RPS / log-loss: lower is better. Direct 1X2 learners, goal "
+                 "(Poisson) models and the TabPFN foundation model; Elo enters as a covariate."))
     viz.save_table(tex, "benchmark")
     viz.set_style()
     import matplotlib.pyplot as plt
@@ -263,18 +207,17 @@ def _report_phase1(res):
 # Phase 2 — tournament test (played WC games, as of each game's date)
 # --------------------------------------------------------------------------- #
 def _selected_models(mf):
-    """Best model from the Phase-1 summary (if present) + Groll + the residual hybrid."""
-    best = ("A", "CatBoost" if "CatBoost" in M.available_classifiers() else "XGBoost")
+    """TabPFN (our main model) for 1X2 + a goal model for the scoreline.
+
+    Falls back to the best Phase-1 learner if TabPFN is unavailable.
+    """
+    main = ("A", "TabPFN") if M.HAS_TABPFN else ("A", "CatBoost")
     path = config.PROCESSED / "benchmark_summary.parquet"
-    if path.exists():  # best *learner* (exclude the trivial Elo / GLM baselines)
-        top = (pl.read_parquet(path).filter(~pl.col("model").is_in(["Elo", "PoissonGLM"]))
+    if not M.HAS_TABPFN and path.exists():
+        top = (pl.read_parquet(path).filter(pl.col("model") != "PoissonGLM")
                .sort("RPS_test").row(0, named=True))
-        best = (top["arm"], top["model"])
-    sel = [best]
-    for m in (("B", "GrollRF"), ("B", "StructResid")):
-        if m != best:
-            sel.append(m)
-    return sel
+        main = (top["arm"], top["model"])
+    return [main, ("B", "CatBoostPoisson")]
 
 
 def phase2():

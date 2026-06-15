@@ -13,8 +13,7 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 from scipy.stats import poisson
-from sklearn.ensemble import (ExtraTreesClassifier, RandomForestClassifier,
-                              RandomForestRegressor)
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression, PoissonRegressor
@@ -219,10 +218,6 @@ def build_poisson_regressor(name: str, params: dict | None = None, seed: int = S
             loss_function="Poisson", random_seed=seed, verbose=False,
             iterations=p.get("iterations", 400), depth=p.get("depth", 5),
             learning_rate=p.get("learning_rate", 0.05))))
-    if name == "GrollRF":  # Groll et al. (2019) "forest half": RF regression on goals
-        return _impute(("m", RandomForestRegressor(
-            n_estimators=p.get("n_estimators", 500), max_depth=p.get("max_depth", None),
-            max_features=p.get("max_features", "sqrt"), random_state=seed, n_jobs=-1)))
     raise ValueError(f"unknown/unavailable regressor: {name}")
 
 
