@@ -3,7 +3,8 @@
 Reusable loaders, feature builders and visualizations for the
 exploratory analysis and the 2026 World Cup forecasting experiments.
 """
-from . import clean, config, data, elo, features, lookups, modeling, update, viz
+from . import clean, config, data, elo, features, lookups, modeling, ratings, update, viz
 
-__all__ = ["clean", "config", "data", "elo", "features", "lookups", "modeling", "update", "viz"]
+__all__ = ["clean", "config", "data", "elo", "features", "lookups", "modeling",
+           "ratings", "update", "viz"]
 __version__ = "0.1.0"
