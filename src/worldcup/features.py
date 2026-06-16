@@ -17,6 +17,7 @@ The builder is stateless: a daily rebuild on freshly pulled data is current.
 from __future__ import annotations
 
 import datetime as dt
+import json
 
 import polars as pl
 
@@ -312,6 +313,29 @@ def _add_squad(df: pl.DataFrame) -> pl.DataFrame:
                             for c in sides])
 
 
+def _wc_knockout() -> pl.DataFrame:
+    """match_id -> is_knockout for every World Cup match in openfootball history.
+
+    A match is knockout when it carries a ``round`` but no ``group`` label (the
+    group stage tags ``group``; R16/QF/SF/Final etc. do not). Lets the feature
+    base flag the tournament phase for *historical* matches, not only 2026."""
+    rows = []
+    for path in sorted(config.WORLDCUP_JSON_DIR.glob("*/worldcup.json")):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        for m in doc.get("matches", []):
+            if m.get("date") and m.get("team1") and m.get("team2"):
+                rows.append({"date": m["date"], "home_team": m["team1"], "away_team": m["team2"],
+                             "ko": m.get("group") is None and m.get("round") is not None})
+    df = pl.DataFrame(rows).with_columns(
+        pl.col("date").str.to_date(strict=False),
+        canon_team("home_team").alias("home_team"), canon_team("away_team").alias("away_team"))
+    return (df.with_columns(_match_id().alias("match_id"))
+            .group_by("match_id").agg(pl.col("ko").max()))
+
+
 def build_match_features(train_cut: dt.date = TRAIN_CUT) -> pl.DataFrame:
     """``train_cut`` keeps historical rows on/after this date (features are always
     computed over the full record; only the final filter moves). The World-Cup
@@ -353,7 +377,10 @@ def build_match_features(train_cut: dt.date = TRAIN_CUT) -> pl.DataFrame:
     mf = _winsorize(mf, levels, ~mf["is_2026"])
     mf = mf.with_columns([(pl.col(f"{c}_home") - pl.col(f"{c}_away")).alias(f"{c}_diff")
                           for c in TEAM_FEATS + SQUAD_FEATS])
-    mf = mf.with_columns((pl.col("stage") == "knockout").fill_null(False).alias("is_knockout"))
+    mf = (mf.join(_wc_knockout(), on="match_id", how="left")
+          .with_columns((pl.col("ko").fill_null(False)
+                         | (pl.col("stage") == "knockout").fill_null(False)).alias("is_knockout"))
+          .drop("ko"))
     return mf.sort("date", "match_id")
 
 
