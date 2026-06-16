@@ -34,7 +34,8 @@ _y = lambda d: np.where(d["home_score"].to_numpy() > d["away_score"].to_numpy(),
 def _data():
     mf = (features.build_match_features(train_cut=dt.date(2002, 1, 1))
           .unique(subset="match_id", keep="first").filter(~pl.col("is_2026")))
-    tr = mf.filter(pl.col("date") < dt.date(2021, 1, 1))
+    # recent window is enough to RANK features (greedy order); keeps it fast
+    tr = mf.filter((pl.col("date") >= dt.date(2015, 1, 1)) & (pl.col("date") < dt.date(2021, 1, 1)))
     va = mf.filter(pl.col("date").dt.year() == 2021)
     te = mf.filter(pl.col("date").dt.year() == 2022)
     return mf, tr, va, te
