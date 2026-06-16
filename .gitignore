@@ -21,3 +21,4 @@ data/processed/*
 .DS_Store
 .vscode/
 .idea/
+production/outputs/
