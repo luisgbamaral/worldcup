@@ -2,14 +2,14 @@
 
 For each World Cup in ``WORLD_CUPS`` we train on the 8 years immediately before its
 first match (rolling origin) and predict every match of that tournament, freezing
-``P(H/D/A)``. Models: three rating-only baselines (ELO-Classic / ELO-World /
-Pi-Rating), LogReg / CatBoost / XGBoost classifiers on the (single-rating) feature
-table with CFS selection, and the tune-free foundation models (TabPFN / TabICL /
-TabDPT when available). Metrics: RPS (primary), hits, accuracy, ECE. Significance
-vs the ELO-World baseline: bootstrap clustered by World Cup + Diebold-Mariano
-(RPS) and McNemar (correctness), with Holm multiplicity control.
+``P(H/D/A)``. Models (all on the single-rating feature table — **Elo is a covariate,
+not a baseline** — with CFS selection): LogReg / CatBoost / XGBoost classifiers and
+the tune-free foundation models (TabPFN / TabICL / TabDPT when available). Metrics:
+RPS (primary), hits, accuracy, ECE. Significance vs the simplest feature model
+(``LogReg``): bootstrap clustered by World Cup + Diebold-Mariano (RPS) and McNemar
+(correctness), with Holm multiplicity control.
 
-    python experiments/worldcup_eval.py [--sims-off-fms]
+    python experiments/worldcup_eval.py
 
 Outputs: reports/tables/worldcup_eval.tex, reports/figures/12_cumulative_hits.{pdf,png},
 data/processed/worldcup_eval.parquet, reports/figures/cumulative_hits.csv.
@@ -26,12 +26,13 @@ from statsmodels.stats.contingency_tables import mcnemar
 from statsmodels.stats.multitest import multipletests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from worldcup import config, data, features, modeling as M, ratings as R, viz  # noqa: E402
-from worldcup.clean import canon_team  # noqa: E402
+from worldcup import config, data, features, modeling as M, viz  # noqa: E402
 
 WORLD_CUPS = [2010, 2014, 2018, 2022]
-BASELINE = "ELO-World"
-RATING_MODELS = {"ELO-Classic": R.rate_classic, "ELO-World": R.rate_world, "Pi-Rating": R.rate_pi}
+# Elo is a COVARIATE of the feature table, never a baseline. The significance
+# reference is the simplest feature model (LogReg) — "do the GBDTs / foundation
+# models beat a plain logistic on the same Elo-bearing features?".
+BASELINE = "LogReg"
 CLF_MODELS = ["LogReg", "CatBoost", "XGBoost"]
 SEED = M.SEED
 _CLS = {"H": 0, "D": 1, "A": 2}
@@ -53,27 +54,6 @@ def _split(df, start, end):
     win = df.filter((pl.col("date") >= start) & (pl.col("date") < end)).sort("date")
     k = max(1, int(win.height * 0.85))
     return win.head(k), (win.slice(k) if win.height - k else win.tail(max(1, win.height // 7)))
-
-
-def _rating_preds():
-    played = data.load_results(played_only=True).with_columns(
-        pl.when(pl.col("home_score") > pl.col("away_score")).then(pl.lit("H"))
-          .when(pl.col("home_score") == pl.col("away_score")).then(pl.lit("D"))
-          .otherwise(pl.lit("A")).alias("result"))
-    rows = []
-    for name, fn in RATING_MODELS.items():
-        # canonical match_id (same hash as the feature table) so all models align
-        rated = fn(played).with_columns(canon_team("home_team").alias("home_team"),
-                                        canon_team("away_team").alias("away_team"))
-        rated = rated.with_columns(features._match_id().alias("match_id"))
-        for wc in WORLD_CUPS:
-            start = _wc_start(rated, wc)
-            tr, va = _split(rated, start.replace(year=start.year - 8), start)
-            wcm = rated.filter((pl.col("tournament") == "FIFA World Cup")
-                               & (pl.col("date").dt.year() == wc)).sort("date")
-            p = R.Readout().fit(tr, va).predict(wcm)
-            rows += _emit(name, wc, wcm, p)
-    return rows
 
 
 def _clf_fm_preds(mf):
@@ -200,8 +180,7 @@ def main():
     print("building extended features (train_cut=2002)...")
     mf = (features.build_match_features(train_cut=dt.date(2002, 1, 1))
           .unique(subset="match_id", keep="first").filter(~pl.col("is_2026")))
-    print("rating baselines..."); rows = _rating_preds()
-    print("classifiers + foundation models..."); rows += _clf_fm_preds(mf)
+    print("classifiers + foundation models..."); rows = _clf_fm_preds(mf)
     df = pl.DataFrame(rows)
     df.write_parquet(config.PROCESSED / "worldcup_eval.parquet")
 

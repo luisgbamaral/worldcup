@@ -31,7 +31,7 @@ def test_window_is_8_years_and_excludes_tournament():
 
 def _toy_eval():
     rows = []
-    for model in ["ELO-World", "M2"]:
+    for model in ["LogReg", "M2"]:
         for i in range(5):
             rows.append({"model": model, "wc": 2018, "date": dt.date(2018, 6, 10 + i),
                          "match_id": i, "correct": 1 if i % 2 == 0 else 0})
@@ -40,7 +40,7 @@ def _toy_eval():
 
 def test_cumulative_hits_monotonic_and_total():
     cum = W.cumulative_series(_toy_eval())
-    for m in ("ELO-World", "M2"):
+    for m in ("LogReg", "M2"):
         v = cum[m].to_numpy()
         assert (np.diff(v) >= 0).all()           # non-decreasing
         assert v[-1] == 3                          # ends at total hits (i=0,2,4)

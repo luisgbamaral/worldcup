@@ -40,15 +40,16 @@ python experiments/worldcup_eval.py
 ```
 
 Rolling **8-year train per World Cup** (`WORLD_CUPS = [2010, 2014, 2018, 2022]`),
-predict every match of that tournament. Compares the **three rating baselines**
-(ELO-Classic / ELO-World / Pi-Rating, `ratings.py`) against LogReg / CatBoost /
-XGBoost (single-rating feature table + CFS selection) and the tune-free foundation
-models (TabPFN / TabICL / TabDPT when available). Metrics: **RPS** (primary), hits,
-accuracy, ECE. Significance vs **ELO-World**: bootstrap clustered by World Cup +
-Diebold-Mariano (RPS) and McNemar (correctness), Holm-adjusted. Outputs:
+predict every match of that tournament. Compares LogReg / CatBoost / XGBoost and the
+tune-free foundation models (TabPFN / TabICL / TabDPT when available), **all on the
+single-rating feature table** (Elo is a covariate, not a baseline; `ratings.py`
+generates it) with CFS selection. Metrics: **RPS** (primary), hits, accuracy, ECE.
+Significance vs the simplest feature model **LogReg**: bootstrap clustered by World
+Cup + Diebold-Mariano (RPS) and McNemar (correctness), Holm-adjusted. Outputs:
 `reports/tables/worldcup_eval.tex`, `reports/figures/12_cumulative_hits.{pdf,png}`
 + `cumulative_hits.csv`, `data/processed/worldcup_eval.parquet`.
 
-**Finding.** On World-Cup matches the feature models (incl. tune-free TabICL/TabPFN)
-**significantly beat the rating-only baselines on RPS** (ΔRPS ≈ 0.005, Holm p ≈ 0);
-the three rating systems are statistically indistinguishable from each other.
+**Finding.** On World-Cup matches all feature models tie on RPS (~0.207; none beats
+LogReg significantly, Holm p = 1.0) — the **tune-free foundation models (TabICL/TabPFN)
+match the tuned GBDTs and even plain logistic regression**; TabICL/XGBoost lead on raw
+hits (143/256, 55.9%).
