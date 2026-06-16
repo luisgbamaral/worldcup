@@ -33,7 +33,7 @@ def _toy_eval():
     rows = []
     for model in ["LogReg", "M2"]:
         for i in range(5):
-            rows.append({"model": model, "wc": 2018, "date": dt.date(2018, 6, 10 + i),
+            rows.append({"model": model, "group": 2018, "date": dt.date(2018, 6, 10 + i),
                          "match_id": i, "correct": 1 if i % 2 == 0 else 0})
     return pl.DataFrame(rows)
 
