@@ -205,7 +205,7 @@ def main():
     opt = json.loads((config.PROCESSED / "optimal_features.json").read_text("utf-8"))
     cols = opt["features"]
     print(f"optimal feature set ({len(cols)}): {cols}")
-    mf = (features.build_match_features(train_cut=dt.date(2000, 1, 1))
+    mf = (features.build_match_features_cached(train_cut=dt.date(2000, 1, 1))
           .unique(subset="match_id", keep="first").filter(~pl.col("is_2026")))
     med = {c: float(np.nan_to_num(np.nanmedian(M.to_numpy(mf, [c])))) for c in cols}
     elo = {r["team"]: r["rating"] for r in E.latest_ratings()

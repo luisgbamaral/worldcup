@@ -384,6 +384,20 @@ def build_match_features(train_cut: dt.date = TRAIN_CUT) -> pl.DataFrame:
     return mf.sort("date", "match_id")
 
 
+def build_match_features_cached(train_cut: dt.date = TRAIN_CUT,
+                                refresh: bool = False) -> pl.DataFrame:
+    """Cached `build_match_features`: the row-level feature build (heavy self-joins
+    over the full record) runs once per ``train_cut`` and is reused by the
+    experiment scripts instead of being recomputed each time."""
+    config.PROCESSED.mkdir(parents=True, exist_ok=True)
+    path = config.PROCESSED / f"match_features_ext_{train_cut:%Y%m%d}.parquet"
+    if path.exists() and not refresh:
+        return pl.read_parquet(path)
+    mf = build_match_features(train_cut)
+    mf.write_parquet(path)
+    return mf
+
+
 def build_team_match_features(mf: pl.DataFrame) -> pl.DataFrame:
     """Long: two rows per match (per team) for the goals model."""
     shared = ["match_id", "date", "tournament", "neutral", "is_2026", "played",

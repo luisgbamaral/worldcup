@@ -8,7 +8,8 @@ win with few features and where the optimum lies. The optimal subset is written 
 so the World-Cup evaluation can be regenerated with it (replacing the aggressive CFS,
 which collapsed to the two Elo columns).
 
-Temporal split for the curve: train <= 2020, validate 2021, test 2022.
+Temporal split for the curve: train < 2022 (full history, subsampled), validate 2022,
+test 2023+ — coherent with the one-step whole-series evaluation.
 
     python experiments/feature_forward.py
 """
@@ -32,12 +33,13 @@ _y = lambda d: np.where(d["home_score"].to_numpy() > d["away_score"].to_numpy(),
 
 
 def _data():
-    mf = (features.build_match_features(train_cut=dt.date(2002, 1, 1))
+    mf = (features.build_match_features_cached(train_cut=dt.date(2000, 1, 1))
           .unique(subset="match_id", keep="first").filter(~pl.col("is_2026")))
-    # recent window is enough to RANK features (greedy order); keeps it fast
-    tr = mf.filter((pl.col("date") >= dt.date(2015, 1, 1)) & (pl.col("date") < dt.date(2021, 1, 1)))
-    va = mf.filter(pl.col("date").dt.year() == 2021)
-    te = mf.filter(pl.col("date").dt.year() == 2022)
+    # rank features on the FULL training history (all eras) for coherence;
+    # main() subsamples the rows for speed (a random sample keeps every era).
+    tr = mf.filter(pl.col("date") < dt.date(2022, 1, 1))
+    va = mf.filter(pl.col("date").dt.year() == 2022)
+    te = mf.filter(pl.col("date") >= dt.date(2023, 1, 1))
     return mf, tr, va, te
 
 
@@ -69,15 +71,18 @@ def wins_feature(Xtr, ytr, Xva, yva, cols):
     return min(win, key=lambda i: _fast_lr(Xtr, ytr, Xva, yva, [i]))
 
 
-def forward_order(Xtr, ytr, Xva, yva, cols):
+def forward_order(Xtr, ytr, Xva, yva, cols, max_steps=45):
     """Greedy forward selection FROM EMPTY (every feature, incl. wins, competes).
     'model 0' (wins only) is a separate reference; model 1 = best single feature,
-    model 2 = + next best, ... — LogReg-guided."""
+    model 2 = + next best, ... — LogReg-guided. Stops after ``max_steps`` picks
+    (the optimum is well below that; avoids the O(n_features^2) full ordering)."""
     score = lambda idx: _fast_lr(Xtr, ytr, Xva, yva, idx)
     remaining, order = list(range(len(cols))), []
-    while remaining:
+    while remaining and len(order) < max_steps:
         order.append(min(remaining, key=lambda j: score(order + [j])))
         remaining.remove(order[-1])
+        if len(order) % 5 == 0:
+            print(f"  greedy step {len(order):2}/{max_steps}  last+={cols[order[-1]]}", flush=True)
     return order
 
 
@@ -86,25 +91,32 @@ def main():
     cols = M.feature_columns(tr)
     Xtr, Xva, Xte = _imputed(tr, va, te, cols)
     ytr, yva, yte = _y(tr), _y(va), _y(te)
-    print(f"features={len(cols)}  train={tr.height} val={va.height} test={te.height}")
+    # rank/curve on a random subsample of the FULL history (every era represented), for speed
+    if len(ytr) > 10000:
+        sub = np.random.RandomState(M.SEED).choice(len(ytr), 10000, replace=False)
+        Xtr, ytr = Xtr[sub], ytr[sub]
+    print(f"features={len(cols)}  train={len(ytr)} (of {tr.height}) val={va.height} test={te.height}")
 
     m0 = wins_feature(Xtr, ytr, Xva, yva, cols)        # model 0: forced wins only
     order = forward_order(Xtr, ytr, Xva, yva, cols)     # model 1..N: greedy from empty
     print("model 0 (forced wins):", cols[m0])
     print("greedy order (model 1 -> ...):", [cols[i] for i in order[:12]])
 
-    # step 0 = wins-only reference; step k>=1 = the greedy top-k (k free features)
+    # step 0 = wins-only reference; step k>=1 = the greedy top-k (k free features);
+    # step = len(cols) = the full feature set (upper reference, all columns)
     fms = [m for m in ("TabPFN", "TabICL", "TabDPT") if m in M.available_classifiers()]
-    steps_cheap = sorted(set(list(range(1, 21)) + [25, 30, 40, 55, 75, len(cols)]))
+    K = len(order)
+    steps_cheap = sorted(set(list(range(1, K + 1)) + [len(cols)]))
     rows = []
     for name in CHEAP + fms:
-        steps = [0] + (steps_cheap if name in CHEAP else [k for k in FM_GRID if k <= len(cols)])
+        steps = [0] + (steps_cheap if name in CHEAP else
+                       [k for k in FM_GRID if k <= K] + [len(cols)])
         for s in steps:
-            idx = [m0] if s == 0 else order[:s]
+            idx = [m0] if s == 0 else (list(range(len(cols))) if s == len(cols) else order[:s])
             try:
                 r = _rps(name, Xtr[:, idx], ytr, Xva[:, idx], yva, Xte[:, idx], yte)
                 rows.append({"model": name, "step": s, "n_features": len(idx), "rps": r})
-                print(f"  {name:9} step={s:3} ({len(idx)}f) RPS={r:.4f}")
+                print(f"  {name:9} step={s:3} ({len(idx)}f) RPS={r:.4f}", flush=True)
             except Exception as exc:  # noqa: BLE001
                 print(f"  [skip] {name} step={s}: {type(exc).__name__}")
     res = pl.DataFrame(rows)
@@ -114,7 +126,7 @@ def main():
     pooled = (res.filter(pl.col("model").is_in(CHEAP) & (pl.col("step") >= 1))
               .group_by("step").agg(pl.col("rps").mean()).sort("rps"))
     k_star = int(pooled["step"][0])
-    optimal = [cols[i] for i in order[:k_star]]
+    optimal = list(cols) if k_star == len(cols) else [cols[i] for i in order[:k_star]]
     (config.PROCESSED / "optimal_features.json").write_text(
         json.dumps({"k_star": k_star, "model0_wins": cols[m0], "features": optimal,
                     "order": [cols[i] for i in order]}, indent=2), encoding="utf-8")
