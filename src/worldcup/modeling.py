@@ -225,8 +225,11 @@ def _impute(*steps):
 def build_classifier(name: str, params: dict | None = None, seed: int = SEED) -> Pipeline:
     p = dict(params or {})
     if name == "LogReg":
+        pen = p.get("penalty", "l2")                       # l1 needs a compatible solver
+        solver = "saga" if pen == "l1" else "lbfgs"
         return _impute(("scale", StandardScaler()),
-                       ("m", LogisticRegression(max_iter=1000, C=p.get("C", 1.0), random_state=seed)))
+                       ("m", LogisticRegression(max_iter=p.get("max_iter", 1000), C=p.get("C", 1.0),
+                                                penalty=pen, solver=solver, random_state=seed)))
     if name == "SVM":
         return _impute(("scale", StandardScaler()),
                        ("m", SVC(probability=True, C=p.get("C", 1.0),
@@ -244,6 +247,7 @@ def build_classifier(name: str, params: dict | None = None, seed: int = SEED) ->
             objective="multi:softprob", num_class=3, random_state=seed, n_jobs=-1,
             n_estimators=p.get("n_estimators", 400), max_depth=p.get("max_depth", 4),
             learning_rate=p.get("learning_rate", 0.05), reg_lambda=p.get("reg_lambda", 1.0),
+            min_child_weight=p.get("min_child_weight", 1), subsample=p.get("subsample", 1.0),
             eval_metric="mlogloss")))
     if name == "CatBoost" and HAS_CATBOOST:
         return _impute(("m", CatBoostClassifier(
