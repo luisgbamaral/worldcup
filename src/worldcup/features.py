@@ -312,7 +312,10 @@ def _add_squad(df: pl.DataFrame) -> pl.DataFrame:
                             for c in sides])
 
 
-def build_match_features() -> pl.DataFrame:
+def build_match_features(train_cut: dt.date = TRAIN_CUT) -> pl.DataFrame:
+    """``train_cut`` keeps historical rows on/after this date (features are always
+    computed over the full record; only the final filter moves). The World-Cup
+    evaluation lowers it to reach 8-year windows before 2018."""
     spine = _spine()
     long_base = _long(spine)
     hist = _elo_context(_expand(spine, _rest_counts(_add_form(long_base, 1)), TEAM_FEATS))
@@ -330,7 +333,7 @@ def build_match_features() -> pl.DataFrame:
     pend = _elo_context(_expand(pend_spine, plong, TEAM_FEATS)).with_columns(
         pl.lit(True).alias("is_2026"))
 
-    keep_hist = hist.filter(((~pl.col("is_2026")) & (pl.col("date") >= TRAIN_CUT))
+    keep_hist = hist.filter(((~pl.col("is_2026")) & (pl.col("date") >= train_cut))
                             | pl.col("is_2026"))
     mf = pl.concat([keep_hist, pend], how="diagonal_relaxed")
 

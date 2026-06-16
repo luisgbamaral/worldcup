@@ -32,3 +32,23 @@ Everything is seeded and deterministic.
 
 > Phase 1 excludes every 2026 World Cup row — it is the clean historical
 > comparison. The tournament rows appear only in Phases 2 and 3.
+
+## World-Cup hit-count evaluation — `worldcup_eval.py`
+
+```bash
+python experiments/worldcup_eval.py
+```
+
+Rolling **8-year train per World Cup** (`WORLD_CUPS = [2010, 2014, 2018, 2022]`),
+predict every match of that tournament. Compares the **three rating baselines**
+(ELO-Classic / ELO-World / Pi-Rating, `ratings.py`) against LogReg / CatBoost /
+XGBoost (single-rating feature table + CFS selection) and the tune-free foundation
+models (TabPFN / TabICL / TabDPT when available). Metrics: **RPS** (primary), hits,
+accuracy, ECE. Significance vs **ELO-World**: bootstrap clustered by World Cup +
+Diebold-Mariano (RPS) and McNemar (correctness), Holm-adjusted. Outputs:
+`reports/tables/worldcup_eval.tex`, `reports/figures/12_cumulative_hits.{pdf,png}`
++ `cumulative_hits.csv`, `data/processed/worldcup_eval.parquet`.
+
+**Finding.** On World-Cup matches the feature models (incl. tune-free TabICL/TabPFN)
+**significantly beat the rating-only baselines on RPS** (ΔRPS ≈ 0.005, Holm p ≈ 0);
+the three rating systems are statistically indistinguishable from each other.
