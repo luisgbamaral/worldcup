@@ -28,7 +28,7 @@ import polars as pl
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from worldcup import config, elo as E, features, modeling as M  # noqa: E402
+from worldcup import config, features, modeling as M  # noqa: E402
 from worldcup.clean import canon_team  # noqa: E402
 
 FIXTURES = ROOT / "data" / "raw" / "fixtures" / "wc2026_group_stage_schedule.csv"
@@ -164,12 +164,14 @@ def _seed_order(n):
 SEED32 = _seed_order(32)
 
 
-def _simulate(groups, fx_rows, Pg, Pn, elo, rng, conditional):
+def _simulate(groups, fx_rows, Pg, Pn, elo, rng, results):
     pts = {t: 0 for g in groups.values() for t in g}
     for r in fx_rows:
         h, a = r["home"], r["away"]
-        if conditional and r["played"]:
-            res = r["result"]
+        key = frozenset((h, a))
+        if key in results:                       # already played -> use the real result
+            dh, dres = results[key]
+            res = dres if dh == h else (1 if dres == 1 else 2 - dres)   # orient to fixture home
         else:
             ph, pd, pa = Pg[(h, a)]
             u = rng.random()
@@ -211,6 +213,18 @@ def _simulate(groups, fx_rows, Pg, Pn, elo, rng, conditional):
 
 
 # --------------------------------------------------------------------------- #
+def _wc_results(mf, asof):
+    """Real 2026 World Cup results up to ``asof`` -> {frozenset(home,away): (home, res)}."""
+    w = mf.filter((pl.col("tournament") == "FIFA World Cup") & (pl.col("date").dt.year() == 2026)
+                  & (pl.col("date") <= asof) & pl.col("home_score").is_not_null())
+    out = {}
+    for r in w.iter_rows(named=True):
+        h, a = r["home_team"], r["away_team"]
+        res = 0 if r["home_score"] > r["away_score"] else (1 if r["home_score"] == r["away_score"] else 2)
+        out[frozenset((h, a))] = (h, res)
+    return out
+
+
 def _train(mf, cols):
     cut = KICKOFF
     tr = (mf.filter(pl.col("date") < cut).filter(~pl.col("is_2026"))
@@ -239,33 +253,36 @@ def _calibrated(p_raw, cals):
     return M.apply_calibrators(p_raw, cals)
 
 
-def run(mode, groups, fx, snap, cols, pipe, cals, med, elo):
-    teams = sorted({t for g in groups.values() for t in g})
-    # group-fixture probabilities (host-aware) + neutral knockout matrix
+def run(mode, mf, groups, fx, teams, cols, pipe, cals, med, asof_snap, asof_res):
+    snap = snapshots(mf, teams, asof_snap)
+    for t in teams:                                # fallback for any team without history
+        snap.setdefault(t, {**{b: None for b in features.TEAM_FEATS}, "elo": 1500.0})
+    elo = {t: snap[t].get("elo", 1500.0) for t in teams}
+    results = _wc_results(mf, asof_res) if mode == "conditional" else {}
+
     gpairs = [(r["home"], r["away"], ("i" if r["host"] == r["home"]
                                       else "j" if r["host"] == r["away"] else None))
               for r in fx.iter_rows(named=True)]
-    Pg_raw = proba_pairs(pipe, snap, gpairs, cols, med)
-    Pg = {k: _calibrated(v[None, :], cals)[0] for k, v in Pg_raw.items()}
+    Pg = {k: _calibrated(v[None, :], cals)[0]
+          for k, v in proba_pairs(pipe, snap, gpairs, cols, med).items()}
     npairs = [(i, j, None) for i in teams for j in teams if i != j]
-    Pn_raw = proba_pairs(pipe, snap, npairs, cols, med)
-    Pn = {k: _calibrated(v[None, :], cals)[0] for k, v in Pn_raw.items()}
+    Pn = {k: _calibrated(v[None, :], cals)[0]
+          for k, v in proba_pairs(pipe, snap, npairs, cols, med).items()}
 
     fx_rows = fx.to_dicts()
     rng = np.random.default_rng(SEED)
     champ, final, semi = {}, {}, {}
-    cond = (mode == "conditional")
     for _ in range(N_SIMS):
-        c, r, t = _simulate(groups, fx_rows, Pg, Pn, elo, rng, cond)
+        c, r, t = _simulate(groups, fx_rows, Pg, Pn, elo, rng, results)
         for team in (c, r):
             final[team] = final.get(team, 0) + 1
         champ[c] = champ.get(c, 0) + 1
         for team in (c, r, t):
-            semi[team] = semi.get(team, 0) + 1     # at least 3rd place == reached SF stage podium
+            semi[team] = semi.get(team, 0) + 1     # finished in the top-3 podium
     tab = pl.DataFrame([{"team": t, "P_champion": champ.get(t, 0) / N_SIMS,
                          "P_final": final.get(t, 0) / N_SIMS, "P_podium": semi.get(t, 0) / N_SIMS}
                         for t in teams]).sort("P_champion", descending=True)
-    return tab
+    return tab, len(results)
 
 
 def main():
@@ -279,24 +296,20 @@ def main():
     mf = (features.build_match_features_cached(train_cut=dt.date(2000, 1, 1))
           .unique(subset="match_id", keep="first"))
     cols = M.feature_columns(mf)
-    snap = snapshots(mf, teams, KICKOFF)
-    missing = [t for t in teams if t not in snap]
-    if missing:
-        print(f"[warn] no feature snapshot for: {missing} -> using median features + Elo 1500")
-        med0 = {b: None for b in features.TEAM_FEATS}
-        for t in missing:
-            snap[t] = {**med0, "elo": 1500.0}
-    elo = {r["team"]: r["rating"] for r in
-           E.latest_ratings().with_columns(canon_team("team").alias("team"))
-           .select("team", "rating").iter_rows(named=True)}
-    for t in teams:                                # keep snapshot Elo and ratings dict consistent
-        elo.setdefault(t, snap[t].get("elo", 1500.0))
+    asof_live = (mf.filter((pl.col("tournament") == "FIFA World Cup")
+                           & (pl.col("date").dt.year() == 2026)
+                           & pl.col("home_score").is_not_null())["date"].max() or KICKOFF)
+    print(f"latest played WC-2026 date in data: {asof_live}")
 
     name, pipe, cals, med = _train(mf, cols)
-    for mode in ("pretournament", "conditional"):
-        tab = run(mode, groups, fx, snap, cols, pipe, cals, med, elo)
+    # pretournament: snapshot strictly before kickoff, no results.  live: snapshot/results as of today.
+    modes = {"pretournament": (KICKOFF, KICKOFF - dt.timedelta(days=1)),
+             "conditional": (asof_live + dt.timedelta(days=1), asof_live)}
+    for mode, (asof_snap, asof_res) in modes.items():
+        tab, nplayed = run(mode, mf, groups, fx, teams, cols, pipe, cals, med, asof_snap, asof_res)
         tab.write_csv(OUT / f"wc2026_{mode}.csv")
-        print(f"\n=== {mode.upper()} — top 12 (model {name}, {N_SIMS} sims) ===")
+        print(f"\n=== {mode.upper()} — top 12 (model {name}, {N_SIMS} sims, "
+              f"{nplayed} games locked in) ===")
         with pl.Config(tbl_rows=12, fmt_float="full"):
             print(tab.with_columns(pl.col("^P_.*$").round(3)).head(12))
     print(f"\nsaved: production/outputs/wc2026_{{pretournament,conditional}}.csv")
