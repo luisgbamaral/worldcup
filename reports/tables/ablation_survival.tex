@@ -1,0 +1,35 @@
+\begin{table}[t]
+  \centering
+  \caption{Does the foundation-model advantage survive a per-window-tuned classical baseline? Paired per-match RPS difference (classical $-$ FM; positive favours the FM), clustered block bootstrap (by year for one-step, by Cup for multi-step). p\_fm\_better is the one-sided bootstrap probability the FM is not better.}
+  \label{tab:ablation_survival}
+  \begin{tabular}{lrrrrrrrrrrr}
+  \toprule
+  scope & features & window & days & best\_fm & rps\_fm & best\_classical & rps\_classical & delta\_fm\_minus\_cl & CI95 & p\_fm\_better & hpo\_degenerate \\
+  \midrule
+  onestep & few & 1mo & 30 & TabPFN & 0.1701 & LogReg & 0.1782 & 0.0081 & [0.0065, 0.0091] & 0.0000 & True \\
+  onestep & few & 6mo & 182 & TabPFN & 0.1700 & LogReg & 0.1710 & 0.0010 & [-0.0003, 0.0022] & 0.0325 & False \\
+  onestep & few & 1y & 365 & TabPFN & 0.1696 & LogReg & 0.1704 & 0.0008 & [-0.0006, 0.0022] & 0.1860 & False \\
+  onestep & few & 2y & 730 & TabICL & 0.1699 & LogReg & 0.1702 & 0.0004 & [-0.0005, 0.0011] & 0.2010 & False \\
+  onestep & few & 5y & 1826 & TabICL & 0.1694 & LogReg & 0.1696 & 0.0002 & [-0.0005, 0.0015] & 0.2970 & False \\
+  onestep & few & 8y & 2922 & TabICL & 0.1692 & XGBoost & 0.1693 & 0.0001 & [-0.0002, 0.0003] & 0.2640 & False \\
+  onestep & best & 1mo & 30 & TabPFN & 0.1708 & LogReg & 0.1819 & 0.0111 & [0.0082, 0.0134] & 0.0000 & True \\
+  onestep & best & 6mo & 182 & TabPFN & 0.1684 & LogReg & 0.1697 & 0.0012 & [0.0002, 0.0020] & 0.0045 & False \\
+  onestep & best & 1y & 365 & TabICL & 0.1688 & CatBoost & 0.1710 & 0.0018 & [0.0010, 0.0029] & 0.0000 & False \\
+  onestep & best & 2y & 730 & TabICL & 0.1690 & CatBoost & 0.1711 & 0.0017 & [0.0007, 0.0022] & 0.0030 & False \\
+  onestep & best & 5y & 1826 & TabPFN & 0.1675 & LogReg & 0.1688 & 0.0012 & [0.0003, 0.0024] & 0.0000 & False \\
+  onestep & best & 8y & 2922 & TabICL & 0.1678 & CatBoost & 0.1681 & -0.0001 & [-0.0005, 0.0002] & 0.6955 & False \\
+  multistep & few & 1mo & 30 & TabPFN & 0.2019 & CatBoost & 0.2077 & 0.0058 & [-0.0016, 0.0132] & 0.0680 & True \\
+  multistep & few & 6mo & 182 & TabPFN & 0.1965 & CatBoost & 0.1986 & 0.0021 & [-0.0025, 0.0061] & 0.1720 & True \\
+  multistep & few & 1y & 365 & TabPFN & 0.1950 & LogReg & 0.1958 & 0.0008 & [-0.0013, 0.0031] & 0.2030 & False \\
+  multistep & few & 2y & 730 & TabPFN & 0.1972 & LogReg & 0.1975 & 0.0003 & [-0.0030, 0.0029] & 0.4125 & False \\
+  multistep & few & 5y & 1826 & TabPFN & 0.1973 & LogReg & 0.1970 & -0.0004 & [-0.0078, 0.0072] & 0.6465 & False \\
+  multistep & few & 8y & 2922 & TabPFN & 0.1980 & LogReg & 0.1961 & -0.0019 & [-0.0072, 0.0038] & 0.7550 & False \\
+  multistep & best & 1mo & 30 & TabPFN & 0.2093 & CatBoost & 0.2131 & 0.0038 & [0.0019, 0.0057] & 0.0000 & True \\
+  multistep & best & 6mo & 182 & TabICL & 0.2000 & CatBoost & 0.2090 & 0.0090 & [0.0012, 0.0169] & 0.0095 & True \\
+  multistep & best & 1y & 365 & TabICL & 0.1956 & CatBoost & 0.1984 & 0.0029 & [-0.0016, 0.0066] & 0.1085 & False \\
+  multistep & best & 2y & 730 & TabICL & 0.1961 & CatBoost & 0.1984 & 0.0022 & [-0.0018, 0.0060] & 0.1335 & False \\
+  multistep & best & 5y & 1826 & TabICL & 0.1968 & XGBoost & 0.1984 & 0.0015 & [-0.0020, 0.0049] & 0.1940 & False \\
+  multistep & best & 8y & 2922 & TabPFN & 0.1973 & CatBoost & 0.1973 & -0.0000 & [-0.0032, 0.0032] & 0.5450 & False \\
+  \bottomrule
+  \end{tabular}
+\end{table}

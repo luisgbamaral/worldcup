@@ -1,0 +1,16 @@
+\begin{table}[t]
+  \centering
+  \caption{One-step 1X2 forecasting — World Cups 2010-2022, rolling 8-year train. RPS lower is better; Hits/Accuracy higher. Optimal forward-selected features, Elo as covariate; Δ/p vs LogReg (Holm bootstrap + McNemar). Foundation models tune-free.}
+  \label{tab:onestep_worldcup}
+  \begin{tabular}{lrrrrrrr}
+  \toprule
+  model & RPS & Hits & Accuracy & ECE & dRPS & p\_boot\_holm & p\_McNemar \\
+  \midrule
+  TabPFN & \textbf{0.2063} & 140 & 0.5470 & 0.0602 & 0.0020 & 1.0000 & 0.5224 \\
+  TabICL & 0.2079 & 140 & 0.5470 & 0.0513 & 0.0003 & 1.0000 & 0.5403 \\
+  LogReg & 0.2083 & 136 & 0.5310 & 0.0493 &  &  &  \\
+  CatBoost & 0.2098 & 140 & 0.5470 & 0.0411 & -0.0016 & 1.0000 & 0.5708 \\
+  XGBoost & 0.2141 & 138 & 0.5390 & 0.0572 & -0.0059 & 1.0000 & 0.8597 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

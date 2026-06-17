@@ -1,0 +1,71 @@
+\begin{table}[t]
+  \centering
+  \caption{One-step training-size ablation with per-window HPO for the classical models (foundation models tune-free). RPS mean with 95\% CI over 5 seeds; tuning\_fits is the inner-CV fit count (0 for foundation models).}
+  \label{tab:ablation_onestep}
+  \begin{tabular}{lrrrrrrrr}
+  \toprule
+  features & window & model & n\_train & rps & rps\_lo & rps\_hi & tuning\_fits & hpo\_degenerate \\
+  \midrule
+  few & 1mo & LogReg & 57 & 0.1782 & 0.1782 & 0.1782 & 0 & True \\
+  few & 1mo & CatBoost & 57 & 0.1818 & 0.1814 & 0.1822 & 0 & True \\
+  few & 1mo & XGBoost & 57 & 0.1866 & 0.1861 & 0.1871 & 0 & True \\
+  few & 1mo & TabPFN & 57 & 0.1701 & 0.1701 & 0.1701 & 0 & False \\
+  few & 1mo & TabICL & 57 & 0.1807 & 0.1807 & 0.1807 & 0 & False \\
+  few & 6mo & LogReg & 628 & 0.1710 & 0.1710 & 0.1710 & 36 & False \\
+  few & 6mo & CatBoost & 628 & 0.1717 & 0.1712 & 0.1722 & 30 & False \\
+  few & 6mo & XGBoost & 628 & 0.1718 & 0.1716 & 0.1719 & 30 & False \\
+  few & 6mo & TabPFN & 628 & 0.1700 & 0.1700 & 0.1700 & 0 & False \\
+  few & 6mo & TabICL & 628 & 0.1703 & 0.1703 & 0.1703 & 0 & False \\
+  few & 1y & LogReg & 1115 & 0.1704 & 0.1704 & 0.1704 & 36 & False \\
+  few & 1y & CatBoost & 1115 & 0.1708 & 0.1704 & 0.1712 & 30 & False \\
+  few & 1y & XGBoost & 1115 & 0.1712 & 0.1709 & 0.1715 & 30 & False \\
+  few & 1y & TabPFN & 1115 & 0.1696 & 0.1696 & 0.1696 & 0 & False \\
+  few & 1y & TabICL & 1115 & 0.1696 & 0.1696 & 0.1696 & 0 & False \\
+  few & 2y & LogReg & 1462 & 0.1702 & 0.1702 & 0.1702 & 36 & False \\
+  few & 2y & CatBoost & 1462 & 0.1706 & 0.1703 & 0.1709 & 30 & False \\
+  few & 2y & XGBoost & 1462 & 0.1707 & 0.1705 & 0.1710 & 30 & False \\
+  few & 2y & TabPFN & 1462 & 0.1699 & 0.1699 & 0.1699 & 0 & False \\
+  few & 2y & TabICL & 1462 & 0.1699 & 0.1699 & 0.1699 & 0 & False \\
+  few & 5y & LogReg & 4464 & 0.1696 & 0.1696 & 0.1696 & 36 & False \\
+  few & 5y & CatBoost & 4464 & 0.1699 & 0.1697 & 0.1701 & 30 & False \\
+  few & 5y & XGBoost & 4464 & 0.1699 & 0.1698 & 0.1701 & 30 & False \\
+  few & 5y & TabPFN & 4464 & 0.1696 & 0.1696 & 0.1696 & 0 & False \\
+  few & 5y & TabICL & 4464 & 0.1694 & 0.1694 & 0.1694 & 0 & False \\
+  few & 8y & LogReg & 7279 & 0.1695 & 0.1695 & 0.1695 & 36 & False \\
+  few & 8y & CatBoost & 7279 & 0.1695 & 0.1692 & 0.1698 & 30 & False \\
+  few & 8y & XGBoost & 7279 & 0.1693 & 0.1692 & 0.1694 & 30 & False \\
+  few & 8y & TabPFN & 7279 & 0.1695 & 0.1695 & 0.1695 & 0 & False \\
+  few & 8y & TabICL & 7279 & 0.1692 & 0.1692 & 0.1692 & 0 & False \\
+  best & 1mo & LogReg & 57 & 0.1819 & 0.1819 & 0.1819 & 0 & True \\
+  best & 1mo & CatBoost & 57 & 0.1825 & 0.1816 & 0.1834 & 0 & True \\
+  best & 1mo & XGBoost & 57 & 0.1849 & 0.1846 & 0.1852 & 0 & True \\
+  best & 1mo & TabPFN & 57 & 0.1708 & 0.1708 & 0.1708 & 0 & False \\
+  best & 1mo & TabICL & 57 & 0.1821 & 0.1821 & 0.1821 & 0 & False \\
+  best & 6mo & LogReg & 628 & 0.1697 & 0.1697 & 0.1697 & 36 & False \\
+  best & 6mo & CatBoost & 628 & 0.1721 & 0.1717 & 0.1726 & 30 & False \\
+  best & 6mo & XGBoost & 628 & 0.1727 & 0.1723 & 0.1731 & 30 & False \\
+  best & 6mo & TabPFN & 628 & 0.1684 & 0.1684 & 0.1684 & 0 & False \\
+  best & 6mo & TabICL & 628 & 0.1689 & 0.1689 & 0.1689 & 0 & False \\
+  best & 1y & LogReg & 1115 & 0.1710 & 0.1710 & 0.1710 & 36 & False \\
+  best & 1y & CatBoost & 1115 & 0.1710 & 0.1706 & 0.1714 & 30 & False \\
+  best & 1y & XGBoost & 1115 & 0.1728 & 0.1725 & 0.1730 & 30 & False \\
+  best & 1y & TabPFN & 1115 & 0.1691 & 0.1691 & 0.1691 & 0 & False \\
+  best & 1y & TabICL & 1115 & 0.1688 & 0.1688 & 0.1688 & 0 & False \\
+  best & 2y & LogReg & 1462 & 0.1760 & 0.1760 & 0.1760 & 36 & False \\
+  best & 2y & CatBoost & 1462 & 0.1711 & 0.1708 & 0.1715 & 30 & False \\
+  best & 2y & XGBoost & 1462 & 0.1715 & 0.1712 & 0.1718 & 30 & False \\
+  best & 2y & TabPFN & 1462 & 0.1691 & 0.1691 & 0.1691 & 0 & False \\
+  best & 2y & TabICL & 1462 & 0.1690 & 0.1690 & 0.1690 & 0 & False \\
+  best & 5y & LogReg & 4464 & 0.1688 & 0.1688 & 0.1688 & 36 & False \\
+  best & 5y & CatBoost & 4464 & 0.1692 & 0.1690 & 0.1694 & 30 & False \\
+  best & 5y & XGBoost & 4464 & 0.1690 & 0.1688 & 0.1691 & 30 & False \\
+  best & 5y & TabPFN & 4464 & 0.1675 & 0.1675 & 0.1675 & 0 & False \\
+  best & 5y & TabICL & 4464 & 0.1680 & 0.1680 & 0.1680 & 0 & False \\
+  best & 8y & LogReg & 7279 & 0.1682 & 0.1682 & 0.1682 & 36 & False \\
+  best & 8y & CatBoost & 7279 & 0.1681 & 0.1676 & 0.1685 & 30 & False \\
+  best & 8y & XGBoost & 7279 & 0.1689 & 0.1688 & 0.1690 & 30 & False \\
+  best & 8y & TabPFN & 7279 & 0.1679 & 0.1679 & 0.1679 & 0 & False \\
+  best & 8y & TabICL & 7279 & 0.1678 & 0.1678 & 0.1678 & 0 & False \\
+  \bottomrule
+  \end{tabular}
+\end{table}

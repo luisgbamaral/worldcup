@@ -1,0 +1,16 @@
+\begin{table}[t]
+  \centering
+  \caption{One-step 1X2 forecasting — whole historical series, test 2023+. RPS lower is better; Hits/Accuracy higher. Optimal forward-selected features, Elo as covariate; Δ/p vs LogReg (Holm bootstrap + McNemar). Foundation models tune-free.}
+  \label{tab:onestep_series}
+  \begin{tabular}{lrrrrrrr}
+  \toprule
+  model & RPS & Hits & Accuracy & ECE & dRPS & p\_boot\_holm & p\_McNemar \\
+  \midrule
+  LogReg & \textbf{0.1685} & 2170 & 0.6030 & 0.0265 &  &  &  \\
+  TabPFN & 0.1691 & 2173 & 0.6040 & 0.0252 & -0.0005 & 1.0000 & 0.8533 \\
+  TabICL & 0.1692 & 2177 & 0.6050 & 0.0269 & -0.0006 & 1.0000 & 0.5791 \\
+  CatBoost & 0.1704 & 2160 & 0.6010 & 0.0298 & -0.0018 & 1.0000 & 0.4334 \\
+  XGBoost & 0.1736 & 2143 & 0.5960 & 0.0414 & -0.0051 & 1.0000 & 0.1008 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,36 @@
+\begin{table}[t]
+  \centering
+  \caption{Multi-step World-Cup forecast: predicted vs actual champion, predicted podium, and podium points (+1 per correctly-placed position, max 3/Cup) for the last five Cups. Models trained on the 5 years before each Cup, frozen, on the forward-selected optimal feature set; the tournament is simulated forward to the champion.}
+  \label{tab:worldcup_multistep}
+  \begin{tabular}{lrrrrrr}
+  \toprule
+  model & wc & pred\_champion & actual\_champion & pred\_runner & pred\_third & podium\_points \\
+  \midrule
+  CatBoost & 2006 & Netherlands & Italy & France & Argentina & \textbf{1} \\
+  LogReg & 2006 & Brazil & Italy & Netherlands & France & 0 \\
+  TabICL & 2006 & Brazil & Italy & Netherlands & Argentina & 0 \\
+  TabPFN & 2006 & Brazil & Italy & Netherlands & France & 0 \\
+  XGBoost & 2006 & Netherlands & Italy & France & Spain & \textbf{1} \\
+  CatBoost & 2010 & Brazil & Spain & Spain & England & 0 \\
+  LogReg & 2010 & Brazil & Spain & Spain & Netherlands & 0 \\
+  TabICL & 2010 & Spain & Spain & Brazil & England & \textbf{1} \\
+  TabPFN & 2010 & Brazil & Spain & Spain & England & 0 \\
+  XGBoost & 2010 & Brazil & Spain & Spain & England & 0 \\
+  CatBoost & 2014 & Brazil & Germany & Argentina & Germany & \textbf{1} \\
+  LogReg & 2014 & Brazil & Germany & Germany & Spain & 0 \\
+  TabICL & 2014 & Brazil & Germany & Spain & Germany & 0 \\
+  TabPFN & 2014 & Brazil & Germany & Spain & Germany & 0 \\
+  XGBoost & 2014 & Brazil & Germany & Germany & Argentina & 0 \\
+  CatBoost & 2018 & Brazil & France & Spain & Germany & 0 \\
+  LogReg & 2018 & Brazil & France & Germany & Spain & 0 \\
+  TabICL & 2018 & Brazil & France & Germany & Spain & 0 \\
+  TabPFN & 2018 & Brazil & France & Germany & Spain & 0 \\
+  XGBoost & 2018 & Spain & France & Brazil & France & 0 \\
+  CatBoost & 2022 & Brazil & Argentina & France & Argentina & \textbf{1} \\
+  LogReg & 2022 & Brazil & Argentina & Portugal & Argentina & 0 \\
+  TabICL & 2022 & Brazil & Argentina & France & Argentina & \textbf{1} \\
+  TabPFN & 2022 & Brazil & Argentina & France & Argentina & \textbf{1} \\
+  XGBoost & 2022 & Brazil & Argentina & Portugal & Argentina & 0 \\
+  \bottomrule
+  \end{tabular}
+\end{table}
