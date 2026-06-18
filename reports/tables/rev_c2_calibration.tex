@@ -1,0 +1,23 @@
+\begin{table}[t]
+  \centering
+  \caption{Class-conditional ECE (home/draw/away) and RPS under raw / per-class isotonic / Dirichlet calibration, test 2023+. Lower ECE is better.}
+  \label{tab:rev_calibration}
+  \begin{tabular}{lrrrrrr}
+  \toprule
+  model & calibrator & ECE\_home & ECE\_draw & ECE\_away & ECE\_mean & RPS \\
+  \midrule
+  LogReg & raw & 0.0151 & 0.0202 & 0.0115 & 0.0156 & 0.1669 \\
+  LogReg & isotonic & 0.0409 & 0.0349 & 0.0262 & 0.0340 & 0.1687 \\
+  LogReg & dirichlet & 0.0357 & 0.0268 & 0.0249 & 0.0291 & 0.1684 \\
+  CatBoost & raw & 0.0214 & 0.0127 & 0.0184 & 0.0175 & 0.1670 \\
+  CatBoost & isotonic & 0.0356 & 0.0283 & 0.0277 & 0.0305 & 0.1683 \\
+  CatBoost & dirichlet & 0.0368 & 0.0167 & 0.0270 & 0.0268 & 0.1684 \\
+  TabPFN & raw & 0.0323 & 0.0268 & 0.0188 & 0.0259 & 0.1674 \\
+  TabPFN & isotonic & 0.0407 & 0.0220 & 0.0172 & 0.0266 & 0.1681 \\
+  TabPFN & dirichlet & 0.0362 & 0.0260 & 0.0231 & 0.0285 & 0.1678 \\
+  TabICL & raw & 0.0284 & 0.0257 & 0.0162 & 0.0235 & 0.1670 \\
+  TabICL & isotonic & 0.0375 & 0.0202 & 0.0259 & 0.0279 & 0.1681 \\
+  TabICL & dirichlet & 0.0364 & 0.0243 & 0.0226 & 0.0278 & 0.1678 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,15 @@
+\begin{table}[t]
+  \centering
+  \caption{Survival vs a principled small-sample baseline (fixed-strong-prior L2 logistic, no inner CV) at the extreme windows. $\Delta$ = classical $-$ best FM per-match RPS; positive favours the FM; p is the one-sided year-clustered bootstrap.}
+  \label{tab:rev_principled}
+  \begin{tabular}{lrrrrrrrr}
+  \toprule
+  features & window & best\_fm & rps\_fm & principled\_classical & rps\_classical & delta\_fm\_minus\_cl & CI95 & p\_fm\_better \\
+  \midrule
+  few & 1mo & TabPFN & 0.1699 & LogReg(C=0.1) & 0.1748 & 0.0049 & [0.0032, 0.0064] & 0.0000 \\
+  few & 6mo & TabPFN & 0.1696 & LogReg(C=0.1) & 0.1717 & 0.0021 & [0.0000, 0.0038] & 0.0175 \\
+  best & 1mo & TabPFN & 0.1708 & LogReg(C=0.05) & 0.1809 & 0.0101 & [0.0078, 0.0115] & 0.0000 \\
+  best & 6mo & TabPFN & 0.1685 & LogReg(C=0.01) & 0.1737 & 0.0052 & [0.0022, 0.0082] & 0.0000 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

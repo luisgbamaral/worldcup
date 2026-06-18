@@ -1,0 +1,3 @@
+scope,model,n,RPS,logloss,Brier,Accuracy
+series,Elo-only (LogReg on elo_diff),3597,0.17,0.9325,0.5123,0.606
+worldcup,Elo-only (LogReg on elo_diff),256,0.2067,1.0701,0.5921,0.551

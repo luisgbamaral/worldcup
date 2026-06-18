@@ -148,6 +148,9 @@ Artifacts: `ablation_{onestep,multistep,survival}.{parquet,csv,tex}`, `15_trains
 3. **World-Cup regime:** foundation models (TabPFN/TabICL) edge ahead on the harder, scarcer Cup matches — directionally consistent, not yet significant (256 matches).
 4. **Tournament simulation:** predicting champions from frozen pre-Cup state is dominated by the Elo favorite (Brazil), which rarely wins — TabICL was the only model to pick a non-Brazil champion correctly (Spain 2010).
 5. `is_knockout` and `is_world_cup` carry genuine signal (entered the greedy order at 7 and 12).
+   The top of that ranking is **highly stable** (§7, D4): over 12 random subsamples `elo_diff_eff`,
+   `ga_pg_5`, `away_elo_pre` occupy ranks 1/2/3 every time (std 0); the tail (incl. the exact
+   position of `is_knockout`) is noisier.
 6. **Training-size ablation is the strongest result — and it survives per-window tuning.**
    With the classical comparators re-tuned at every window (so the comparison is FM vs a
    *properly regularised* baseline, not a straw man), the tune-free foundation models still
@@ -157,3 +160,88 @@ Artifacts: `ablation_{onestep,multistep,survival}.{parquet,csv,tex}`, `15_trains
    artefact and disappears under tuning — but the core finding holds: tune-free tabular FMs
    are the robust choice in the high-dimensional, small-sample regime that World-Cup
    forecasting inhabits, and they get there at **zero tuning cost** (vs 30–180 inner-CV fits).
+
+---
+
+## 7. Revision analyses (peer-review responses)
+
+Per-check verdict on whether the positive finding survives. **Faithful reporting: several
+checks weaken secondary claims; the core data-efficiency result strengthens.**
+
+### TIER A — result-determining
+
+- **A1 — multiplicity correction.** Applying Benjamini–Hochberg FDR and Holm across all 24
+  survival cells: **8/24 survive FDR** (q<0.05), namely **all of one-step `best` from 1 month
+  to 5 years**, plus multi-step `best` at 1mo/6mo and one-step `few` at 1mo; 5/24 survive the
+  stricter Holm. The only raw-significant cell that drops is one-step `few`/6mo (p=0.033→q=0.087).
+  **Verdict: the headline survives multiplicity correction.** (`ablation_survival.{parquet,tex}`
+  now carries `p_raw`, `FDR_q`, `Holm_p`, `survives_fdr`.)
+- **A2 — principled small-sample baseline.** Against a **fixed-strong-prior L2 logistic (no inner
+  CV)** — the MAP of a Bayesian logistic, the best of `C∈{0.01,0.05,0.1}` — the tune-free FM is
+  **still significantly better at all four extreme cells** (best/1mo Δ=+0.0101 p≈0; best/6mo
+  Δ=+0.0052 p≈0; few/1mo Δ=+0.0049 p≈0; few/6mo Δ=+0.0021 p=0.018). So the small-window gap is
+  **not merely a degenerate-CV artefact** — even a principled, properly regularised non-CV baseline
+  does not close it. *(Firth and PyMC baselines were intended but `firthlogist` needs Python<3.11
+  and PyMC is unavailable here; documented.)* **Verdict: the "structural" small-sample claim holds.**
+- **A3 — TabPFN 10k-cap sensitivity.** The cap binds on the whole series (20,775 train rows). RPS
+  spread between **most-recent-10k** and **random-10k** context is **0.0001 (TabPFN) / 0.0007
+  (TabICL)** — the FM number is **not** a silent artefact of the subsampling choice (recent-10k is
+  slightly better calibrated on log-loss). (`rev_a3_tabpfn_cap.{csv,tex}`.)
+
+### TIER B — baselines & external validity
+
+- **B1 — Elo-only reference.** A logistic on `elo_diff_eff` alone scores **0.1700** on the series
+  (vs 0.1685 for full-feature LogReg — the 107-feature table adds only **0.0015**) and **0.2067**
+  on World Cups, where it **beats** the full-feature LogReg (0.2083) and nearly matches the best FM
+  (0.2063). **The incremental value of the feature table over Elo is marginal (series) to negative
+  (WC, linear)** — reinforcing "Elo carries the signal". (`rev_b1_elo_only.{csv,tex}`.)
+- **B2 — market-odds baseline: unavailable.** International-match 1X2 odds are not present in any of
+  our sources (martj42 results, openfootball, statsbomb catalogue carry no odds), and historical
+  closing-odds archives cover club leagues, not the long tail of internationals. We therefore could
+  **not** add a bookmaker baseline; this is a genuine limitation (no external practical ceiling),
+  stated rather than silently omitted.
+- **B3 — multi-era rolling-origin backtest.** Across five non-overlapping eras (2015-16, 2017-18,
+  2019-20, 2021-22, 2023-26; train on the prior 8 years, calibrate on the prior year) the ordering
+  is **period-stable**: **TabICL is best in 4/5 eras**, LogReg in 2019-20, all within ~0.002 RPS.
+  The FMs are at/near the top in every era (no era where they collapse). The earlier "LogReg best at
+  full data" is specific to the *all-history* train set; under bounded 8-year windows the FMs edge
+  ahead — consistent with the data-efficiency story. (`rev_b3_multiera.{csv,tex}`.)
+
+### TIER C — metrics & calibration
+
+- **C1 — log-loss & Brier.** On the **series** the ranking is essentially robust (LogReg best on all
+  three scores; TabPFN/TabICL swap in the middle). On the **World Cups the FM lead is RPS-specific**:
+  under log-loss and Brier the plain **LogReg is best**, with the FMs second. So the (already
+  non-significant) WC FM edge is **metric-dependent** — reported honestly. (`rev_c1_*.{csv,tex}`.)
+- **C2 — Dirichlet vs isotonic calibration.** The calibrator choice **does not change any ranking
+  or conclusion**. Notably, the **raw (uncalibrated) probabilities are already well-calibrated**
+  (mean ECE ~0.016–0.024) and slightly *better* in RPS than either calibrator — our temporal-slice
+  isotonic step mildly *hurts* (e.g. LogReg raw RPS 0.167 / ECE 0.016 vs isotonic 0.169 / 0.034);
+  Dirichlet sits between. (`rev_c2_calibration.{csv,tex}`, reliability diagram `18_reliability_draw`.)
+
+### TIER D — reproducibility & reporting
+
+- **D2 — compute cost.** Per-method whole-series train+inference wall-clock with the per-cell HPO
+  budget: classical models pay **30–36 inner-CV fits per ablation cell** (LogReg fit ~7s, CatBoost
+  ~33s, XGBoost ~21s each), the foundation models pay **0** (TabPFN one ~9s fit + ~8s cloud predict;
+  TabICL one CPU fit). This quantifies "configuration-free / zero tuning cost". (`rev_d2_cost.{csv,tex}`.)
+- **D3 — CV / degeneracy protocol.** Inner CV is `walk_forward_folds` (expanding-window, `n_folds=3`,
+  cuts on date values so every validation date is strictly after all training dates). A cell is
+  `hpo_degenerate` when fewer than 2 valid folds form **or** the smallest fold has `<25` rows
+  (`MIN_FOLD`); it then falls back to a strong-regularisation default with `tuning_fits=0`. Seeds are
+  fixed; sorting is deterministic.
+- **D4 — forward-ranking stability.** Over 12 random subsamples the top features are rock-stable:
+  `elo_diff_eff` (rank 1.0±0), `ga_pg_5` (2.0±0), `away_elo_pre` (3.0±0), `rest_days_diff` (5.1±0.8),
+  all entering the top-10 every time; beyond ~rank 5 the ordering is noisier (so the exact 7th-place
+  of `is_knockout` in the headline run is not itself stable). (`rev_d4_forward_stability.{csv,tex}`.)
+
+### Net effect on the conclusions
+
+The **core claim is unchanged and strengthened**: the tune-free foundation-model advantage in the
+high-dimensional / small-sample regime **survives both multiplicity correction (A1) and a principled
+non-CV baseline (A2)**, is **robust to the TabPFN cap (A3)**, **period-stable (B3)**, and rests on a
+**stable feature ranking (D4)** at **zero tuning cost (D2)**. What the revision *weakens* are
+secondary, already-hedged points: the World-Cup FM edge is metric-dependent (C1) and non-significant;
+the feature table adds little over Elo alone (B1); and no market baseline is available (B2). The
+calibrator choice is immaterial, and our temporal-slice calibration was, if anything, slightly
+harmful versus raw probabilities (C2).

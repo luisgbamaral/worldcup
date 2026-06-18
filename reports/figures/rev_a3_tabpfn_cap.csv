@@ -1,0 +1,5 @@
+model,subsample,n_train,RPS,logloss,Brier
+TabPFN,recent_10k,10000,0.1684,0.9037,0.5073
+TabPFN,random_10k,10000,0.1685,0.9193,0.5078
+TabICL,recent_10k,10000,0.1681,0.8854,0.507
+TabICL,random_10k,10000,0.1688,0.9065,0.5083

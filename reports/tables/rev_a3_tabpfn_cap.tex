@@ -1,0 +1,15 @@
+\begin{table}[t]
+  \centering
+  \caption{TabPFN/TabICL 10k training-cap sensitivity on the whole series (cap binds at 20775 rows): most-recent-10k vs random-10k context, with RPS/log-loss/Brier.}
+  \label{tab:rev_tabpfn_cap}
+  \begin{tabular}{lrrrrr}
+  \toprule
+  model & subsample & n\_train & RPS & logloss & Brier \\
+  \midrule
+  TabPFN & recent\_10k & 10000 & 0.1684 & 0.9037 & 0.5073 \\
+  TabPFN & random\_10k & 10000 & 0.1685 & 0.9193 & 0.5078 \\
+  TabICL & recent\_10k & 10000 & 0.1681 & 0.8854 & 0.5070 \\
+  TabICL & random\_10k & 10000 & 0.1688 & 0.9065 & 0.5083 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

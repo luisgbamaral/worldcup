@@ -1,0 +1,6 @@
+model,n_train,n_test,fit_s,predict_s,hpo_fits_per_cell,tune_free
+LogReg,20775,3597,6.55,0.03,36,false
+CatBoost,20775,3597,33.03,0.06,30,false
+XGBoost,20775,3597,20.75,0.12,30,false
+TabPFN,10000,3597,8.97,8.05,0,true
+TabICL,10000,3597,3.73,3154.04,0,true

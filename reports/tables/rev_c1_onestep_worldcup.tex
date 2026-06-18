@@ -1,0 +1,16 @@
+\begin{table}[t]
+  \centering
+  \caption{One-step World Cups 2010-2022: RPS (primary), multiclass log-loss and Brier, with accuracy. Lower is better for the three proper scores.}
+  \label{tab:rev_c1_onestep_worldcup}
+  \begin{tabular}{lrrrrr}
+  \toprule
+  model & n & RPS & logloss & Brier & Accuracy \\
+  \midrule
+  TabPFN & 256 & \textbf{0.2063} & 1.0641 & 0.5913 & 0.5470 \\
+  TabICL & 256 & 0.2079 & 1.0729 & 0.5953 & 0.5470 \\
+  LogReg & 256 & 0.2083 & 1.0596 & 0.5892 & 0.5310 \\
+  CatBoost & 256 & 0.2098 & 1.0828 & 0.5980 & 0.5470 \\
+  XGBoost & 256 & 0.2141 & 1.0875 & 0.6053 & 0.5390 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

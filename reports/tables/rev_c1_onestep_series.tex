@@ -1,0 +1,16 @@
+\begin{table}[t]
+  \centering
+  \caption{One-step whole series, test 2023+: RPS (primary), multiclass log-loss and Brier, with accuracy. Lower is better for the three proper scores.}
+  \label{tab:rev_c1_onestep_series}
+  \begin{tabular}{lrrrrr}
+  \toprule
+  model & n & RPS & logloss & Brier & Accuracy \\
+  \midrule
+  LogReg & 3597 & \textbf{0.1685} & 0.8922 & 0.5083 & 0.6030 \\
+  TabPFN & 3597 & 0.1691 & 0.9028 & 0.5096 & 0.6040 \\
+  TabICL & 3597 & 0.1692 & 0.8944 & 0.5095 & 0.6050 \\
+  CatBoost & 3597 & 0.1704 & 0.9147 & 0.5123 & 0.6010 \\
+  XGBoost & 3597 & 0.1736 & 0.9290 & 0.5214 & 0.5960 \\
+  \bottomrule
+  \end{tabular}
+\end{table}

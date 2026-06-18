@@ -1,0 +1,16 @@
+\begin{table}[t]
+  \centering
+  \caption{Compute cost per method on the whole series (one fit + inference on the 2023+ test). hpo\_fits\_per\_cell is the inner-CV budget in the training-size ablation; foundation models are tune-free (0). TabPFN runs on the PriorLabs cloud, TabICL on CPU.}
+  \label{tab:rev_cost}
+  \begin{tabular}{lrrrrrr}
+  \toprule
+  model & n\_train & n\_test & fit\_s & predict\_s & hpo\_fits\_per\_cell & tune\_free \\
+  \midrule
+  LogReg & 20775 & 3597 & 6.55 & 0.03 & 36 & False \\
+  CatBoost & 20775 & 3597 & 33.03 & 0.06 & 30 & False \\
+  XGBoost & 20775 & 3597 & 20.75 & 0.12 & 30 & False \\
+  TabPFN & 10000 & 3597 & 8.97 & 8.05 & 0 & True \\
+  TabICL & 10000 & 3597 & 3.73 & 3154.04 & 0 & True \\
+  \bottomrule
+  \end{tabular}
+\end{table}

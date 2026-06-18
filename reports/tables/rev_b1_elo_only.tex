@@ -1,0 +1,13 @@
+\begin{table}[t]
+  \centering
+  \caption{Elo-only reference (logistic on `elo_diff_eff` only): the dominant covariate without the rest of the feature table, for the series and pooled World Cups.}
+  \label{tab:rev_elo_only}
+  \begin{tabular}{lrrrrrr}
+  \toprule
+  scope & model & n & RPS & logloss & Brier & Accuracy \\
+  \midrule
+  series & Elo-only (LogReg on elo\_diff) & 3597 & 0.1700 & 0.9325 & 0.5123 & 0.6060 \\
+  worldcup & Elo-only (LogReg on elo\_diff) & 256 & 0.2067 & 1.0701 & 0.5921 & 0.5510 \\
+  \bottomrule
+  \end{tabular}
+\end{table}
