@@ -1,104 +1,104 @@
 # CLAUDE.md — worldcup
 
-Project memory for Claude Code. Versioned and shared with the team: clone the repo and you
-have full context, **zero verbal briefing**. (Personal preferences live in `~/.claude/CLAUDE.md`;
-on conflict, this project file wins.)
+Memória de projeto do Claude Code. Versionada no repositório: quem clona já tem o contexto
+completo, **sem briefing verbal**. Preferências pessoais ficam em
+`~/.claude/CLAUDE.md`; em conflito, este arquivo de projeto vence.
 
-## Persona / how to respond
-- **Conversation in Portuguese; everything in the codebase in English** (code, comments,
-  docstrings, log messages, commit messages).
-- Professional, **short and concise** code with good abstractions — no over-engineering.
-- **Report faithfully.** If a result is null, a test fails, or a step was skipped, say so. Never
-  tune or cherry-pick to make a finding look better.
-- Act when you have enough information; give a recommendation, not an exhaustive menu of options.
+> **Idioma:** converse e escreva este arquivo em português; mantenha **todo o código em inglês**
+> (nomes, comentários, docstrings, logs, mensagens de commit). Termos técnicos, caminhos e
+> comandos não se traduzem.
 
-## Project goal
-International football forecasting, with the **2026 World Cup** as the headline application. Three
-purposes: (1) win a prediction pool; (2) a short paper for a journal; (3) a senior-ML portfolio.
+## Como responder
+- Aja quando tiver informação suficiente. Dê uma recomendação, não um cardápio de opções.
+- Faça a alteração mínima que resolve a tarefa; não reescreva um arquivo inteiro por um conserto
+  pontual. Mostre o diff relevante, não o arquivo todo.
+- Reuse o que já existe em `src/worldcup/` antes de criar função nova; prefira funções pequenas a
+  abstrações genéricas. *Over-engineering* aqui é concreto — ex.: para somar uma métrica a uma
+  tabela, escreva `def log_loss_by_model(probs): ...` e chame direto; **não** crie uma
+  `class MetricRegistry` com factory e config plugável. Se ~10 linhas resolvem, não faça uma classe.
+- **Relate com fidelidade.** Se um resultado deu nulo, um teste falhou ou um passo foi pulado,
+  diga isso. Nunca ajuste nem selecione resultados para um achado parecer melhor do que é.
 
-## Structure — folders and what they are for
+## Objetivo
+Previsão de futebol internacional, com a **Copa de 2026** como aplicação principal. Três fins:
+(1) ganhar um bolão; (2) um paper curto para periódico; (3) portfólio sênior de ML.
+
+## Equipe e responsabilidades
+- **Luís Guilherme Brandão Amaral** (LEME) — autor/lead; modelagem, features e avaliação.
+- **Claude (Opus)** — par de programação; mensagens de commit terminam com `Co-Authored-By: Claude ...`.
+- Repositório solo hoje; estas convenções mantêm o onboarding pronto para novos membros.
+
+## Estrutura — pastas e função
 ```
-src/worldcup/     installable package = the ENGINE (keep stable, reused everywhere)
-  config.py  data.py  clean.py  lookups.py   — paths, loading, canonical team names
-  elo.py  ratings.py                         — self-computed Elo + rating systems
-  features.py                                — 107 leakage-safe match features (+ cache)
-  modeling.py                                — classifiers, calibration, RPS, temporal CV, HPO
-  update.py                                  — refresh raw data from public sources
-experiments/      research scripts (ablations, evaluations) — the PAPER lives off these
-production/       standalone 2026 forecaster (depends only on src/, NOT on the paper)
-paper/            short_paper.md — the write-up
-reports/          GENERATED output: figures/ and tables/ (tracked)
-scripts/          one-shot build/update entry points
-tests/            pytest suite
-data/             see data policy below
+src/worldcup/     pacote instalável = o MOTOR (mantenha estável, reusado em todo lugar)
+  config.py  data.py  clean.py  lookups.py   — caminhos, carga, nomes canônicos de seleções
+  elo.py  ratings.py                         — Elo próprio + sistemas de rating
+  features.py                                — 107 features sem leakage (+ cache)
+  modeling.py                                — classificadores, calibração, RPS, CV temporal, HPO
+  update.py                                  — atualiza dados crus das fontes públicas
+experiments/      scripts de pesquisa (ablations, avaliações) — o PAPER nasce daqui
+production/       previsor 2026 standalone (depende só de src/, NÃO do paper)
+paper/            short_paper.md — o texto
+reports/          saída GERADA: figures/ e tables/ (versionadas)
+scripts/          entry points de build/update
+tests/            suíte pytest
+data/             ver proteções e camadas geradas abaixo
 notebooks/  models/
 ```
 
-### Files you must NOT edit
-- **`data/raw/**` — raw source data. Never hand-edit.** It is refreshed *only* via
-  `python -m worldcup.update` (downloads from the canonical GitHub sources). Treat it as
-  read-only input; the permission rules deny edits to it.
-- **`.env`** — holds `TABPFN_TOKEN`. Never read into context, never commit (gitignored).
+## Proteções — não editar
+A aplicação destas regras mora no `.claude/settings.json` (deny); este arquivo só as descreve.
+- **`data/raw/**`** — dados crus de origem. Nunca edite à mão. Atualize **só** via
+  `python -m worldcup.update` (baixa das fontes canônicas no GitHub). Trate como entrada read-only.
+- **IMPORTANT — `.env`**: guarda `TABPFN_TOKEN`. Nunca leia para o contexto, nunca commite (está
+  no gitignore). Ler um segredo para o contexto é irreversível.
+- Não dê **push em `main`** nem rode `worldcup.update` sem confirmar antes.
 
-### Where generated output goes
-- `reports/figures/`, `reports/tables/` — committed artifacts (charts, LaTeX/CSV tables).
-- `data/processed/`, `data/interim/` — **gitignored** generated layers (feature caches,
-  result parquets). Safe to delete and regenerate.
-- `production/outputs/` — gitignored forecast CSVs.
+## Onde vai a saída gerada
+- `reports/figures/`, `reports/tables/` — artefatos versionados (gráficos, tabelas LaTeX/CSV).
+- `data/processed/`, `data/interim/` — camadas geradas, gitignored. Pode apagar e regerar.
+- `production/outputs/` — CSVs de previsão, gitignored.
 
-## Code style
-- **`snake_case`** for functions/variables; `UPPER_SNAKE` for module constants; `PascalCase` for
-  classes. Module names short and lowercase.
-- **Polars first** for dataframes (not pandas) unless a dep forces otherwise.
-- Every module starts with a one-line-plus docstring saying what it does and how to run it;
-  comments explain *why*, not *what*. Match the density of the surrounding code.
-- Logs/prints in English, terse, append-only (e.g. `print(..., flush=True)` in long runs).
+## Estilo de código
+- Use `snake_case` em funções/variáveis, `UPPER_SNAKE` em constantes de módulo, `PascalCase` em
+  classes. Mantenha nomes de módulo curtos e minúsculos.
+- Use Polars para dataframes (não pandas), a menos que uma dependência force o contrário.
+- Comece cada módulo com uma docstring de uma linha dizendo o que faz e como rodar. Comente o
+  *porquê*, não o *o quê*. Acompanhe a densidade do código ao redor.
+- Escreva logs em inglês, enxutos e append-only (ex.: `print(..., flush=True)` em runs longos).
 
-## Config / stack
-- **Python ≥ 3.10** (this machine runs 3.13). **No R or Julia** — Python only.
-- Core libs: **Polars**, NumPy, scikit-learn, **XGBoost**, **CatBoost**, **Optuna**,
-  Matplotlib, PyArrow; foundation models **TabPFN** (cloud, needs `TABPFN_TOKEN`) and **TabICL**
-  (CPU, local). Full list in `requirements.txt` / `pyproject.toml`.
-- Secrets: `.env` (gitignored), template in `.env.example`.
+## Stack e como rodar
+- **Python ≥ 3.10** (esta máquina roda 3.13). Só Python — sem R nem Julia.
+- Libs centrais: Polars, NumPy, scikit-learn, XGBoost, CatBoost, Optuna, Matplotlib, PyArrow.
+  Foundation models: TabPFN (nuvem, precisa de `TABPFN_TOKEN`) e TabICL (CPU, local).
+- Segredos em `.env` (gitignored); template em `.env.example`.
 
-### How to run
 ```bash
-pytest                                   # test suite (pythonpath=src configured in pyproject)
-python -m worldcup.update                # refresh data/raw/ from public sources
-python scripts/build_features.py         # rebuild the feature cache
-python experiments/<name>.py             # an experiment / ablation
-python production/predict_wc2026.py      # the live 2026 champion forecast
+pytest                                   # suíte de testes (pythonpath=src no pyproject)
+python -m worldcup.update                # atualiza data/raw/ das fontes públicas
+python scripts/build_features.py         # reconstrói o cache de features
+python experiments/<nome>.py             # um experimento / ablation
+python production/predict_wc2026.py      # a previsão do campeão 2026
 ```
-Heavy experiments (foundation models on CPU, Optuna) can run for minutes to hours — prefer
-background runs with append-only logs.
+Experimentos pesados (foundation models em CPU, Optuna) levam de minutos a horas: prefira rodar em
+background com log append-only.
 
-## Team & responsibilities
-- **Luís Guilherme Brandão Amaral** (LEME) — lead/author; owns modeling, features, evaluation.
-- **Claude (Opus)** — pair contributor; commits end with `Co-Authored-By: Claude ...`.
-- Solo repo today; conventions here keep it onboarding-ready for new members.
+## Decisões arquiteturais — não reverter em silêncio
+- **Elo é COVARIÁVEL, nunca baseline.** Nenhuma linha "Elo" em benchmark; a referência de
+  significância é o modelo de features mais simples (LogReg em todas as features).
+- **Sem leakage e estritamente temporal.** Toda feature usa só dados anteriores à partida; a CV é
+  walk-forward, **nunca** k-fold embaralhado; calibração em fatia temporal.
+- **RPS é a métrica primária** (1X2 ordenado); log-loss/Brier/ECE são secundárias.
+- **Foundation models ficam tune-free** (TabPFN/TabICL) — essa propriedade configuration-free é a
+  alegação de pesquisa sob teste; só baselines clássicos podem ser tunados.
+- Reuse o cache de features (`features.build_match_features_cached`); o build linha-a-linha é caro.
 
-## Architectural decisions already made (do not silently revert)
-- **Elo is a COVARIATE, never a baseline.** No "Elo" row in any benchmark; the significance
-  reference is the simplest feature model (**LogReg on all features**).
-- **Leakage-safe + strictly temporal.** Every feature uses only data prior to the match; CV is
-  walk-forward, **never** shuffled k-fold; calibration on a temporal slice.
-- **RPS is the primary metric** (ordered 1X2); log-loss/Brier/ECE are secondary.
-- **Foundation models stay tune-free** (TabPFN/TabICL) — that configuration-free property is the
-  research claim under test; only *classical* baselines may be tuned.
-- The feature build is **cached** (`features.build_match_features_cached`); the row-level build is
-  expensive, so reuse the cache across scripts.
-
-## Scope — what NOT to do
-- Don't edit `data/raw/**` or commit/read `.env`.
-- Don't reintroduce Elo (or any rating) as a standalone model/baseline row.
-- Don't tune the foundation models, and don't use shuffled CV or any future-peeking feature.
-- Don't add pandas where Polars fits; don't add heavy deps without need.
-- Don't push to `main` or run `worldcup.update` without confirmation (see `.claude/settings.json`).
-
-## Example of a well-formed task (Context → Example → Plan → Scope)
-> **Context:** `experiments/worldcup_eval.py` already does one-step 1X2 eval with RPS + Holm tests.
-> **Want:** add multiclass **log-loss** next to RPS in the series and World-Cup tables, computed
-> from the saved per-match probabilities — same table style as `reports/tables/onestep_series.tex`.
-> **Plan:** read `data/processed/onestep_*.parquet`; compute log-loss per model; append a column;
-> re-emit the LaTeX via `viz.df_to_neurips_latex`.
-> **Scope:** don't retrain models, don't touch `data/raw/`, keep RPS as the primary (first) metric.
+## Exemplo de tarefa bem-formada (Contexto → Exemplo → Plano → Escopo)
+> **Contexto:** `experiments/worldcup_eval.py` já faz avaliação 1X2 one-step com RPS + testes de Holm.
+> **Quero:** adicionar log-loss multiclasse ao lado do RPS nas tabelas de série e de Copa,
+> calculado a partir das probabilidades por partida já salvas — mesmo estilo de
+> `reports/tables/onestep_series.tex`.
+> **Plano:** ler `data/processed/onestep_*.parquet`; calcular log-loss por modelo; anexar a coluna;
+> reemitir o LaTeX via `viz.df_to_neurips_latex`.
+> **Escopo:** não retreine modelos, não toque em `data/raw/`, mantenha o RPS como métrica primária.
+```
