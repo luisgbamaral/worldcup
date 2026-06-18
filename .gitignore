@@ -22,3 +22,8 @@ data/processed/*
 .vscode/
 .idea/
 production/outputs/
+
+# Claude Code: share project config (CLAUDE.md, .claude/settings.json),
+# ignore personal/local overrides
+.claude/settings.local.json
+.claude/*.local.json
